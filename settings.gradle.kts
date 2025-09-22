@@ -1,0 +1,1 @@
+rootProject.name = "athlete-performance-tracker-backend"
