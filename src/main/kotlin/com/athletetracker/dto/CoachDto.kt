@@ -64,7 +64,7 @@ data class UpdateCoachRequest(
     val bio: String? = null
 )
 
-data class CreateCoachRequest(
+data class CreateCoachProfileRequest(
     @field:Size(min = 1, max = 100, message = "First name must be between 1 and 100 characters")
     val firstName: String,
 
@@ -72,7 +72,7 @@ data class CreateCoachRequest(
     val lastName: String,
 
     @field:Email(message = "Email must be valid")
-    val email: String? = null,
+    val email: String,
 
     @field:Size(max = 20, message = "Phone number cannot exceed 20 characters")
     val phone: String? = null,

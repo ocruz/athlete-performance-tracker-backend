@@ -11,15 +11,13 @@ import org.springframework.stereotype.Repository
 @Repository
 interface ProgramRepository : JpaRepository<Program, Long> {
     fun findByCreatedByOrderByCreatedAtDesc(createdBy: User): List<Program>
-    fun findByCreatedById(createdById: Long): List<Program>
     fun findByIsActiveTrue(): List<Program>
     fun findByIsActiveTrueAndIsTemplateTrue(): List<Program>
     fun findByIsActiveTrueAndSport(sport: Sport): List<Program>
     fun findByIsActiveTrueAndSportAndIsTemplateTrue(sport: Sport): List<Program>
-    
+    fun countByCreatedBy(user: User): Int
+
     @Query("SELECT p FROM Program p WHERE p.isActive = true AND " +
            "(p.name LIKE %:search% OR p.description LIKE %:search%)")
     fun searchActivePrograms(@Param("search") search: String): List<Program>
-    
-    fun findByIsActiveTrueAndDifficultyLevel(difficultyLevel: String): List<Program>
 }

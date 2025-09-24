@@ -1,1 +1,1 @@
-rootProject.name = "athlete-performance-tracker-backend"
+rootProject.name = "prospecto-performance-backend"

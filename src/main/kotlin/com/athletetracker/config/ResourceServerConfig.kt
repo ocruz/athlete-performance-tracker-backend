@@ -94,6 +94,7 @@ class ResourceServerConfig(
                     .requestMatchers("/connect/**").permitAll()
                     .requestMatchers("/userinfo").permitAll()
                     .requestMatchers("/.well-known/**").permitAll()
+                    .requestMatchers("/login").permitAll()
                     
                     // API documentation
                     .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()

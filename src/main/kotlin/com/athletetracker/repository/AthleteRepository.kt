@@ -23,6 +23,7 @@ interface AthleteRepository : JpaRepository<Athlete, Long> {
     
     fun countBySportAndIsActiveTrue(sport: Sport): Long
     fun countByIsActiveTrue(): Long
+    fun countBySport(sport: Sport): Long
     fun findByEmail(email: String): Athlete?
     fun findByUserId(userId: Long): Athlete?
 }

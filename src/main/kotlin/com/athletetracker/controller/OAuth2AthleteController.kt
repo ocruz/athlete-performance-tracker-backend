@@ -202,12 +202,25 @@ class OAuth2AthleteController(
     
     /**
      * Extract athlete ID from JWT token
-     * In a real implementation, this would map from the JWT subject to the athlete ID
+     * Uses the enhanced token structure with athleteId claim
      */
     private fun extractAthleteIdFromJwt(jwt: Jwt): Long {
-        // For now, assume the subject is the athlete ID
-        // In production, you might need to look up the user and then find their athlete record
-        return jwt.subject.toLongOrNull() ?: throw IllegalArgumentException("Invalid athlete ID in token")
+        // First try to get athleteId from the custom claim
+        val athleteId = jwt.getClaimAsString("athleteId")?.toLongOrNull()
+        if (athleteId != null) {
+            return athleteId
+        }
+        
+        // Fallback: try to get from userId claim and look up athlete
+        val userId = jwt.getClaimAsString("userId")?.toLongOrNull()
+        if (userId != null) {
+            val athlete = athleteService.findAthleteByUserId(userId)
+            if (athlete != null) {
+                return athlete.id
+            }
+        }
+        
+        throw IllegalArgumentException("No valid athlete ID found in token")
     }
     
     /**

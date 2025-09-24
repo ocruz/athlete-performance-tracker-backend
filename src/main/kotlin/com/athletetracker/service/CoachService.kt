@@ -29,7 +29,7 @@ class CoachService(
         return coach.toDto()
     }
 
-    fun createCoach(request: CreateCoachRequest): CoachDto {
+    fun createCoach(request: CreateCoachProfileRequest): CoachDto {
         val user = userRepository.findById(request.userId)
             .orElseThrow { IllegalArgumentException("User not found with id: ${request.userId}") }
 

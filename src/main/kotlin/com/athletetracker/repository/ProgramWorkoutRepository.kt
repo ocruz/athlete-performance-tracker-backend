@@ -40,6 +40,9 @@ interface ProgramWorkoutRepository : JpaRepository<ProgramWorkout, Long> {
     // Count all workout templates in a program
     fun countByProgram(program: Program): Long
     
+    // Count active workout templates
+    fun countByIsActive(isActive: Boolean): Long
+    
     // Find workout templates by estimated duration range
     @Query("SELECT pw FROM ProgramWorkout pw WHERE pw.program = :program AND pw.estimatedDuration BETWEEN :minDuration AND :maxDuration ORDER BY pw.orderInProgram")
     fun findByProgramAndDurationRange(

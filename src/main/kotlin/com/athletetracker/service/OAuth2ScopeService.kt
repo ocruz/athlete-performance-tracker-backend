@@ -1,85 +1,172 @@
 package com.athletetracker.service
 
+import com.athletetracker.dto.OAuth2ScopeDto
 import com.athletetracker.entity.OAuth2Scope
 import com.athletetracker.entity.ScopeCategory
 import com.athletetracker.repository.OAuth2ScopeRepository
+import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
 @Service
-@Transactional
+@Transactional(readOnly = true)
 class OAuth2ScopeService(
-    private val scopeRepository: OAuth2ScopeRepository
+    private val oauth2ScopeRepository: OAuth2ScopeRepository
 ) {
-    
-    @Transactional(readOnly = true)
-    fun getAllScopes(): List<OAuth2Scope> {
-        return scopeRepository.findAll()
-    }
-    
-    @Transactional(readOnly = true)
-    fun getScopesByCategory(category: ScopeCategory): List<OAuth2Scope> {
-        return scopeRepository.findByCategory(category)
-    }
-    
-    @Transactional(readOnly = true)
-    fun getDefaultScopes(): List<OAuth2Scope> {
-        return scopeRepository.findByIsDefaultTrue()
-    }
-    
-    @Transactional(readOnly = true)
-    fun getSensitiveScopes(): List<OAuth2Scope> {
-        return scopeRepository.findByIsSensitiveTrue()
-    }
-    
-    @Transactional(readOnly = true)
-    fun validateScopes(requestedScopes: List<String>): List<OAuth2Scope> {
-        return scopeRepository.findByScopeNameIn(requestedScopes)
-    }
-    
-    @Transactional(readOnly = true)
-    fun getScopeDescription(scopeName: String): String? {
-        return scopeRepository.findByScopeName(scopeName)?.description
-    }
-    
+
     /**
-     * Validates that all requested scopes exist and returns validation results
+     * Get all available OAuth2 scopes
      */
-    @Transactional(readOnly = true)
-    fun validateScopeRequest(requestedScopes: List<String>): ScopeValidationResult {
-        val existingScopes = validateScopes(requestedScopes)
-        val existingScopeNames = existingScopes.map { it.scopeName }
-        val invalidScopes = requestedScopes - existingScopeNames.toSet()
-        val sensitiveScopes = existingScopes.filter { it.isSensitive }
+    fun getAllScopes(): List<OAuth2ScopeDto> {
+        return oauth2ScopeRepository.findAll().map { mapToDto(it) }
+    }
+
+    /**
+     * Get scopes by category
+     */
+    fun getScopesByCategory(): Map<String, List<OAuth2ScopeDto>> {
+        val allScopes = oauth2ScopeRepository.findAll()
+        return allScopes.groupBy { it.category.name }
+            .mapValues { (_, scopes) -> scopes.map { mapToDto(it) } }
+    }
+
+    /**
+     * Get default scopes that should be included in all client registrations
+     */
+    fun getDefaultScopes(): List<OAuth2ScopeDto> {
+        return oauth2ScopeRepository.findByIsDefaultTrue().map { mapToDto(it) }
+    }
+
+    /**
+     * Get sensitive scopes that require additional consent
+     */
+    fun getSensitiveScopes(): List<OAuth2ScopeDto> {
+        return oauth2ScopeRepository.findByIsSensitiveTrue().map { mapToDto(it) }
+    }
+
+    /**
+     * Get scopes by category
+     */
+    fun getScopesByCategory(category: ScopeCategory): List<OAuth2ScopeDto> {
+        return oauth2ScopeRepository.findByCategory(category).map { mapToDto(it) }
+    }
+
+    /**
+     * Get scopes by names
+     */
+    fun getScopesByNames(scopeNames: List<String>): List<OAuth2ScopeDto> {
+        return oauth2ScopeRepository.findByScopeNamesOrdered(scopeNames).map { mapToDto(it) }
+    }
+
+    /**
+     * Validate that all requested scopes exist and are valid
+     */
+    fun validateScopes(requestedScopes: List<String>): ScopeValidationResult {
+        val validScopes = oauth2ScopeRepository.findByScopeNameIn(requestedScopes)
+        val validScopeNames = validScopes.map { it.scopeName }.toSet()
+        val invalidScopes = requestedScopes.filter { it !in validScopeNames }
+        
+        val sensitiveScopes = validScopes.filter { it.isSensitive }
         
         return ScopeValidationResult(
-            validScopes = existingScopes,
+            isValid = invalidScopes.isEmpty(),
+            validScopes = validScopes.map { mapToDto(it) },
             invalidScopes = invalidScopes,
-            sensitiveScopes = sensitiveScopes,
-            isValid = invalidScopes.isEmpty()
+            sensitiveScopes = sensitiveScopes.map { mapToDto(it) },
+            requiresAdditionalConsent = sensitiveScopes.isNotEmpty()
         )
     }
-    
-    /**
-     * Gets the recommended scopes for a new client application
-     */
-    @Transactional(readOnly = true)
-    fun getRecommendedScopesForClient(): List<OAuth2Scope> {
-        return getDefaultScopes()
-    }
-    
-    /**
-     * Groups scopes by category for display purposes
-     */
-    @Transactional(readOnly = true)
-    fun getScopesGroupedByCategory(): Map<ScopeCategory, List<OAuth2Scope>> {
-        return getAllScopes().groupBy { it.category }
-    }
-}
 
-data class ScopeValidationResult(
-    val validScopes: List<OAuth2Scope>,
-    val invalidScopes: List<String>,
-    val sensitiveScopes: List<OAuth2Scope>,
-    val isValid: Boolean
-)
+    /**
+     * Check if a user should be prompted for consent for the requested scopes
+     * This considers sensitive scopes and user's previous consent decisions
+     */
+    fun requiresConsent(
+        requestedScopes: List<String>,
+        clientId: String,
+        userId: Long,
+        isClientTrusted: Boolean = false
+    ): ConsentRequirement {
+        if (isClientTrusted) {
+            return ConsentRequirement(
+                requiresConsent = false,
+                reason = "Client is trusted"
+            )
+        }
+
+        val scopeValidation = validateScopes(requestedScopes)
+        if (!scopeValidation.isValid) {
+            return ConsentRequirement(
+                requiresConsent = true,
+                reason = "Invalid scopes requested",
+                invalidScopes = scopeValidation.invalidScopes
+            )
+        }
+
+        if (scopeValidation.requiresAdditionalConsent) {
+            return ConsentRequirement(
+                requiresConsent = true,
+                reason = "Sensitive scopes require consent",
+                sensitiveScopes = scopeValidation.sensitiveScopes
+            )
+        }
+
+        // For now, always require consent for non-trusted clients
+        // In the future, this could check previous consent decisions
+        return ConsentRequirement(
+            requiresConsent = true,
+            reason = "First-time authorization",
+            requestedScopes = scopeValidation.validScopes
+        )
+    }
+
+    /**
+     * Get user-friendly descriptions for scopes to display in consent screen
+     */
+    fun getScopeDescriptions(scopeNames: List<String>): Map<String, ScopeDescription> {
+        val scopes = oauth2ScopeRepository.findByScopeNameIn(scopeNames)
+        return scopes.associate { scope ->
+            scope.scopeName to ScopeDescription(
+                displayName = scope.displayName,
+                description = scope.description,
+                category = scope.category.name,
+                isSensitive = scope.isSensitive
+            )
+        }
+    }
+
+    private fun mapToDto(scope: OAuth2Scope): OAuth2ScopeDto {
+        return OAuth2ScopeDto(
+            id = scope.id,
+            scopeName = scope.scopeName,
+            displayName = scope.displayName,
+            description = scope.description,
+            category = scope.category.name,
+            isSensitive = scope.isSensitive,
+            isDefault = scope.isDefault
+        )
+    }
+
+    data class ScopeValidationResult(
+        val isValid: Boolean,
+        val validScopes: List<OAuth2ScopeDto>,
+        val invalidScopes: List<String>,
+        val sensitiveScopes: List<OAuth2ScopeDto>,
+        val requiresAdditionalConsent: Boolean
+    )
+
+    data class ConsentRequirement(
+        val requiresConsent: Boolean,
+        val reason: String,
+        val requestedScopes: List<OAuth2ScopeDto> = emptyList(),
+        val sensitiveScopes: List<OAuth2ScopeDto> = emptyList(),
+        val invalidScopes: List<String> = emptyList()
+    )
+
+    data class ScopeDescription(
+        val displayName: String,
+        val description: String,
+        val category: String,
+        val isSensitive: Boolean
+    )
+}
