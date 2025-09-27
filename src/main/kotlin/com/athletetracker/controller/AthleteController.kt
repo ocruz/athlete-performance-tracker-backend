@@ -17,7 +17,6 @@ import org.springframework.web.multipart.MultipartFile
 
 @RestController
 @RequestMapping("/athlete")
-@CrossOrigin(origins = ["http://localhost:3000"])
 @PreAuthorize("hasRole('ATHLETE')")
 class AthleteController(
     private val athleteProgramService: AthleteProgramService,

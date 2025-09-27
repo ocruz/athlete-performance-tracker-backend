@@ -20,7 +20,6 @@ import org.springframework.web.multipart.MultipartFile
 
 @RestController
 @RequestMapping("/coach")
-@CrossOrigin(origins = ["http://localhost:3000"])
 @PreAuthorize("hasRole('COACH')")
 class CoachController(
     private val athleteProgramService: AthleteProgramService,

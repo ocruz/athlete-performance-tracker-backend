@@ -10,7 +10,6 @@ import org.springframework.web.bind.annotation.*
 
 @RestController
 @RequestMapping("/athletes")
-@CrossOrigin(origins = ["http://localhost:3000"])
 @PreAuthorize("hasRole('COACH') or hasRole('ADMIN')")
 class AthletesController(
     private val athleteService: AthleteService

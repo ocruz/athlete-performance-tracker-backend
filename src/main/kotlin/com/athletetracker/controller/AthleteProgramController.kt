@@ -15,7 +15,6 @@ import java.time.LocalDate
 
 @RestController
 @RequestMapping("/athlete-programs")
-@CrossOrigin(origins = ["http://localhost:3000"])
 @PreAuthorize("hasRole('COACH') or hasRole('ATHLETE')")
 class AthleteProgramController(
     private val athleteProgramService: AthleteProgramService,

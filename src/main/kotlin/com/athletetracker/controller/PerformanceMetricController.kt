@@ -15,7 +15,6 @@ import java.time.LocalDateTime
 
 @RestController
 @RequestMapping("/performance-metrics")
-@CrossOrigin(origins = ["http://localhost:3000"])
 class PerformanceMetricController(
     private val performanceMetricService: PerformanceMetricService,
     private val personalRecordService: PersonalRecordService,

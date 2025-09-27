@@ -50,7 +50,7 @@ app:
     default-redirect-uri: ${OAUTH2_DEFAULT_REDIRECT_URI:http://localhost:3001/auth/callback}
     access-token-validity: ${OAUTH2_ACCESS_TOKEN_VALIDITY:PT15M} # 15 minutes
     refresh-token-validity: ${OAUTH2_REFRESH_TOKEN_VALIDITY:PT1H} # 1 hour
-    frontend-login-url: ${OAUTH2_FRONTEND_LOGIN_URL:http://localhost:3001/login}
+    frontend-login-url: ${OAUTH2_FRONTEND_LOGIN_URL:http://localhost:3001/oauth2/login}
   
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3001}

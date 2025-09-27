@@ -9,7 +9,6 @@ import org.springframework.web.bind.annotation.*
 
 @RestController
 @RequestMapping("/programs/{programId}/workouts")
-@CrossOrigin(origins = ["http://localhost:3000"])
 class ProgramWorkoutController(
     private val programService: ProgramService
 ) {

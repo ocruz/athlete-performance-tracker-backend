@@ -53,7 +53,6 @@ class OAuth2TokenEnhancerService(
             }
 
             // Add standard OAuth2 claims
-            context.claims.claim("iss", context.authorizationGrantType)
             context.claims.claim("aud", context.registeredClient.clientId)
             
             // Add custom claims for mobile app integration
@@ -62,19 +61,5 @@ class OAuth2TokenEnhancerService(
                 context.claims.claim("apiVersion", "v1")
             }
         }
-    }
-
-    /**
-     * Extract athlete ID from user safely
-     */
-    fun getAthleteIdForUser(userId: Long): Long? {
-        return athleteRepository.findByUserId(userId)?.id
-    }
-
-    /**
-     * Extract coach ID from user safely
-     */
-    fun getCoachIdForUser(userId: Long): Long? {
-        return coachRepository.findByUserId(userId).orElse(null)?.id
     }
 }

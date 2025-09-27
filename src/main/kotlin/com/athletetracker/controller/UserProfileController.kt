@@ -13,7 +13,6 @@ import org.springframework.web.multipart.MultipartFile
 
 @RestController
 @RequestMapping("/users")
-@CrossOrigin(origins = ["http://localhost:3000"])
 class UserProfileController(
     private val userProfileService: UserProfileService,
     private val coachService: CoachService,

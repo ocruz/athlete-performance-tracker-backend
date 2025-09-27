@@ -42,9 +42,9 @@ This document contains the OAuth2 client credentials for development and testing
 
 ## Frontend Integration
 
-**Login URL:** `http://localhost:3001/login` (configurable via `OAUTH2_FRONTEND_LOGIN_URL`)
+**Login URL:** `http://localhost:3001/oauth2/login` (configurable via `OAUTH2_FRONTEND_LOGIN_URL`)
 
-The OAuth2 server redirects unauthenticated users to the frontend login page with a `returnUrl` parameter containing the original OAuth2 authorization request.
+The OAuth2 server redirects unauthenticated users to the OAuth2 login page with a `returnUrl` parameter containing the original OAuth2 authorization request. This is separate from the regular application login at `/login`.
 
 ## OAuth2 Authorization Flow
 
@@ -56,38 +56,32 @@ GET http://localhost:8081/api/oauth2/authorize?response_type=code&client_id=pros
 ### Step 2: Login Redirect (New Flow)
 If user is not authenticated, the server redirects to:
 ```
-http://localhost:3001/login?returnUrl=http%3A//localhost%3A8081/api/oauth2/authorize%3Fresponse_type%3Dcode%26client_id%3Dprospecto%26redirect_uri%3Dhttp%253A//localhost%253A8080/api/oauth2/athlete-tracker/callback%26scope%3Dathlete%253Aread%2520performance%253Aread%26state%3Dxyz123
+http://localhost:3001/oauth2/login?returnUrl=http%3A//localhost%3A8081/api/oauth2/authorize%3Fresponse_type%3Dcode%26client_id%3Dprospecto%26redirect_uri%3Dhttp%253A//localhost%253A8080/api/oauth2/athlete-tracker/callback%26scope%3Dathlete%253Aread%2520performance%253Aread%26state%3Dxyz123
 ```
 
-### Step 3: Frontend Login
-User logs in via the frontend application.
+### Step 3: OAuth2 Login
+User logs in via the dedicated OAuth2 login page (`/oauth2/login`), which is separate from regular app login.
 
 ### Step 4: Return to OAuth2 Flow
-Frontend redirects back to the `returnUrl` (OAuth2 authorization endpoint).
+After successful authentication, the OAuth2 login page redirects back to the `returnUrl` (OAuth2 authorization endpoint).
 
 ### Step 5: Authorization Completion
 OAuth2 server proceeds with consent (if required) and authorization code generation.
 
 ## Frontend Implementation Requirements
 
-**Your frontend login page must:**
+**The OAuth2 login page (`/oauth2/login`) automatically:**
 
-1. **Handle the `returnUrl` parameter** from the query string
-2. **After successful authentication**, redirect the user back to the `returnUrl`
-3. **Ensure session cookies are properly set** so the backend recognizes the authenticated user
-4. **Example login page logic:**
-   ```javascript
-   const urlParams = new URLSearchParams(window.location.search);
-   const returnUrl = urlParams.get('returnUrl');
-   
-   // After successful login:
-   if (returnUrl) {
-     window.location.href = decodeURIComponent(returnUrl);
-   } else {
-     // Default redirect if no returnUrl provided
-     window.location.href = '/dashboard';
-   }
-   ```
+1. **Parses the `returnUrl` parameter** from the query string
+2. **Authenticates the user** using session-based authentication (not JWT tokens)
+3. **After successful authentication**, redirects the user back to the `returnUrl`
+4. **Sets session cookies** so the OAuth2 server recognizes the authenticated user
+
+**Implementation Details:**
+- Uses `/api/auth/oauth2/login` endpoint for authentication
+- Session-based authentication (compatible with OAuth2 flow)
+- Separate from regular app login (`/login`) which uses JWT tokens
+- Automatically redirects back to OAuth2 authorization endpoint after login
 
 ## Environment Configuration
 
@@ -95,12 +89,12 @@ OAuth2 server proceeds with consent (if required) and authorization code generat
 ```yaml
 app:
   oauth2:
-    frontend-login-url: http://localhost:3001/login
+    frontend-login-url: http://localhost:3001/oauth2/login
 ```
 
 **Environment Variable:**
 ```bash
-export OAUTH2_FRONTEND_LOGIN_URL=http://localhost:3001/login
+export OAUTH2_FRONTEND_LOGIN_URL=http://localhost:3001/oauth2/login
 ```
 
 ## Example Token Exchange

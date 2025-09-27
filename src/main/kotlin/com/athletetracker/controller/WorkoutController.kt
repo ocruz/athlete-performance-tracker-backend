@@ -17,7 +17,6 @@ import java.time.LocalDateTime
 
 @RestController
 @RequestMapping("/workouts")
-@CrossOrigin(origins = ["http://localhost:3000"])
 class WorkoutController(
     private val workoutService: WorkoutService
 ) {

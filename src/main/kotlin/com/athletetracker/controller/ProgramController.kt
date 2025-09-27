@@ -11,7 +11,6 @@ import org.springframework.web.bind.annotation.*
 
 @RestController
 @RequestMapping("/programs")
-@CrossOrigin(origins = ["http://localhost:3000"])
 class ProgramController(
     private val programService: ProgramService
 ) {

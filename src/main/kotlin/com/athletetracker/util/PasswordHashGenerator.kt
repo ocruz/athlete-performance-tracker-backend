@@ -7,7 +7,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder
  */
 fun main() {
     val encoder = BCryptPasswordEncoder(12)
-    val password = "password123"
+    val password = "prospecto-secret"
     val hash = encoder.encode(password)
     
     println("Password: $password")

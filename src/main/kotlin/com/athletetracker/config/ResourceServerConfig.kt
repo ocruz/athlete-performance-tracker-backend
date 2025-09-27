@@ -51,18 +51,35 @@ class ResourceServerConfig(
         return config.authenticationManager
     }
 
+
     @Bean
     @Order(2)
+    fun oauth2LoginSecurityFilterChain(http: HttpSecurity): SecurityFilterChain {
+        http
+            .securityMatcher("/auth/oauth2/**")
+            .cors { it.configurationSource(corsConfigurationSource) }
+            .csrf { it.disable() }
+            .sessionManagement { it.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED) }
+            .authorizeHttpRequests { auth ->
+                auth.requestMatchers("/auth/oauth2/**").permitAll()
+            }
+            .authenticationProvider(authenticationProvider())
+
+        return http.build()
+    }
+
+    @Bean
+    @Order(3)
     fun oauth2ResourceSecurityFilterChain(http: HttpSecurity): SecurityFilterChain {
         http
-            .securityMatcher("/api/v1/oauth2/**")
+            .securityMatcher("/v1/oauth2/**")
             .cors { it.configurationSource(corsConfigurationSource) }
             .csrf { it.disable() }
             .sessionManagement { it.sessionCreationPolicy(SessionCreationPolicy.STATELESS) }
             .authorizeHttpRequests { auth ->
                 auth
                     // OAuth2 API endpoints (protected by scopes)
-                    .requestMatchers("/api/v1/oauth2/**").hasAuthority("SCOPE_openid")
+                    .requestMatchers("/v1/oauth2/**").hasAuthority("SCOPE_openid")
                     .anyRequest().authenticated()
             }
             .oauth2ResourceServer { oauth2 ->
@@ -75,7 +92,7 @@ class ResourceServerConfig(
     }
 
     @Bean
-    @Order(3)
+    @Order(4)
     fun defaultSecurityFilterChain(http: HttpSecurity): SecurityFilterChain {
         http
             .cors { it.configurationSource(corsConfigurationSource) }

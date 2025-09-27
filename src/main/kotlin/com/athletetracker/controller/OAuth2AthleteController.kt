@@ -18,8 +18,8 @@ import org.springframework.web.bind.annotation.*
  * These endpoints use scope-based authorization instead of role-based authorization.
  */
 @RestController
-@RequestMapping("/api/v1/oauth2")
-@CrossOrigin(origins = ["*"]) // More permissive for OAuth2 clients
+@RequestMapping("/v1/oauth2")
+@CrossOrigin(originPatterns = ["*"]) // More permissive for OAuth2 clients
 class OAuth2AthleteController(
     private val athleteService: AthleteService,
     private val performanceMetricService: PerformanceMetricService,

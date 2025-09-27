@@ -16,11 +16,13 @@ import org.springframework.security.core.Authentication
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.web.bind.annotation.*
+import jakarta.servlet.http.HttpServletRequest
+import org.springframework.security.web.context.HttpSessionSecurityContextRepository
+import org.springframework.security.web.authentication.WebAuthenticationDetailsSource
 import java.time.LocalDateTime
 
 @RestController
 @RequestMapping("/auth")
-@CrossOrigin(origins = ["http://localhost:3000"])
 class AuthController(
     private val authenticationManager: AuthenticationManager,
     private val userRepository: UserRepository,
@@ -29,6 +31,54 @@ class AuthController(
     private val userRoleService: UserRoleService,
     private val athleteService: AthleteService
 ) {
+
+    @PostMapping("/oauth2/login")
+    fun oauth2Login(
+        @Valid @RequestBody loginRequest: LoginRequest,
+        request: HttpServletRequest
+    ): ResponseEntity<Map<String, Any>> {
+        try {
+            val authentication = authenticationManager.authenticate(
+                UsernamePasswordAuthenticationToken(
+                    loginRequest.email,
+                    loginRequest.password
+                )
+            )
+
+            val user = authentication.principal as User
+            
+            // Update last login time
+            val updatedUser = user.copy(lastLoginAt = LocalDateTime.now())
+            userRepository.save(updatedUser)
+
+            // Set authentication details for the session
+            val authToken = UsernamePasswordAuthenticationToken(
+                updatedUser, 
+                null, 
+                authentication.authorities
+            )
+            authToken.details = WebAuthenticationDetailsSource().buildDetails(request)
+
+            // Store authentication in security context for this session
+            SecurityContextHolder.getContext().authentication = authToken
+            
+            // Save the security context in the session
+            val session = request.getSession(true)
+            session.setAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY, 
+                SecurityContextHolder.getContext())
+
+            // Return success response (no JWT tokens for OAuth2 flow)
+            return ResponseEntity.ok(mapOf(
+                "success" to true,
+                "message" to "Authentication successful"
+            ))
+        } catch (e: Exception) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(mapOf(
+                "success" to false,
+                "message" to "Invalid email or password"
+            ))
+        }
+    }
 
     @PostMapping("/login")
     fun login(@Valid @RequestBody loginRequest: LoginRequest): ResponseEntity<LoginResponse> {
@@ -170,45 +220,6 @@ class AuthController(
         // With stateless JWT, logout is handled on the client side
         // Optionally, you could implement a token blacklist here
         return ResponseEntity.ok("Logged out successfully")
-    }
-
-    @GetMapping("/debug/users")
-    fun debugUsers(): ResponseEntity<Map<String, Any?>> {
-        try {
-            val users = userRepository.findAll()
-            val userCount = users.size
-            val userEmails = users.map { it.email }
-            
-            val debugInfo = mapOf(
-                "totalUsers" to userCount,
-                "userEmails" to userEmails,
-                "sampleUser" to if (users.isNotEmpty()) mapOf(
-                    "email" to users.first().email,
-                    "role" to users.first().role,
-                    "isActive" to users.first().isActive,
-                    "passwordEncoded" to users.first().password.take(20) + "..."
-                ) else null,
-                "tableExists" to true
-            )
-            
-            return ResponseEntity.ok(debugInfo)
-        } catch (e: Exception) {
-            val errorInfo = mapOf(
-                "error" to "Database error",
-                "message" to e.message,
-                "tableExists" to false
-            )
-            return ResponseEntity.ok(errorInfo)
-        }
-    }
-
-    @GetMapping("/debug/encode/{password}")
-    fun debugEncodePassword(@PathVariable password: String): ResponseEntity<Map<String, String>> {
-        val encoded = passwordEncoder.encode(password)
-        return ResponseEntity.ok(mapOf(
-            "password" to password,
-            "encoded" to encoded
-        ))
     }
 
     @ExceptionHandler(Exception::class)
