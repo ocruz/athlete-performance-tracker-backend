@@ -36,18 +36,10 @@ class AdminController(
         @RequestParam(required = false) searchQuery: String?
     ): ResponseEntity<UserListResponse> {
         val roleEnum = role?.let { 
-            try { 
-                com.athletetracker.entity.UserRole.valueOf(it.uppercase()) 
-            } catch (e: IllegalArgumentException) { 
-                null 
-            } 
+            com.athletetracker.entity.UserRole.valueOf(it.uppercase())
         }
         val sportEnum = sport?.let { 
-            try { 
-                com.athletetracker.entity.Sport.valueOf(it.uppercase()) 
-            } catch (e: IllegalArgumentException) { 
-                null 
-            } 
+            com.athletetracker.entity.Sport.valueOf(it.uppercase())
         }
 
         val request = UserListRequest(

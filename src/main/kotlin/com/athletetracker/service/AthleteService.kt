@@ -46,7 +46,34 @@ class AthleteService(
         )
         
         val savedAthlete = athleteRepository.save(athlete)
+        
+        // Send invitation if email is provided
+        if (!request.email.isNullOrBlank()) {
+            try {
+                // Note: This will be handled by a separate service call from the controller
+                // to avoid circular dependency issues
+                println("📧 Athlete created with email: ${request.email}. Invitation should be sent by controller.")
+            } catch (e: Exception) {
+                println("⚠️  Failed to send invitation to ${request.email}: ${e.message}")
+            }
+        }
+        
         return mapToResponse(savedAthlete)
+    }
+    
+    /**
+     * Link an athlete profile to a user account
+     */
+    fun linkAthleteToUser(athleteId: Long, userId: Long) {
+        val athlete = athleteRepository.findByIdOrNull(athleteId)
+            ?: throw IllegalArgumentException("Athlete not found with id: $athleteId")
+        
+        val updatedAthlete = athlete.copy(
+            userId = userId,
+            updatedAt = LocalDateTime.now()
+        )
+        
+        athleteRepository.save(updatedAthlete)
     }
     
     fun updateAthlete(id: Long, request: UpdateAthleteRequest): AthleteDto {
@@ -201,16 +228,6 @@ class AthleteService(
         return mapOf(
             "totalAthletes" to totalAthletes,
             "athletesBySport" to athletesBySport
-        )
-    }
-
-    private fun mapToBasicDto(athlete: Athlete): AthleteBasicDto {
-        return AthleteBasicDto(
-            id = athlete.id,
-            firstName = athlete.firstName,
-            lastName = athlete.lastName,
-            dateOfBirth = athlete.dateOfBirth,
-            sport = athlete.sport.toString()
         )
     }
 

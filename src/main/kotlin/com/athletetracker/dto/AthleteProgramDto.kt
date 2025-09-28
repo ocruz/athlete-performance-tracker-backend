@@ -44,7 +44,10 @@ data class AthleteBasicDto(
     val firstName: String,
     val lastName: String,
     val dateOfBirth: LocalDate,
-    val sport: String
+    val sport: String,
+    val fullName: String? = null,
+    val position: String? = null,
+    val email: String? = null
 )
 
 data class ProgramBasicDto(

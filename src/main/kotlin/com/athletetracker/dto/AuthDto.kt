@@ -1,5 +1,6 @@
 package com.athletetracker.dto
 
+import com.athletetracker.entity.Sport
 import com.athletetracker.entity.UserRole
 import jakarta.validation.constraints.Email
 import jakarta.validation.constraints.NotBlank
@@ -67,6 +68,42 @@ data class UpdateProfileRequest(
     
     @field:NotBlank(message = "Last name is required")
     val lastName: String
+)
+
+// Registration and Invitation DTOs
+
+data class InvitationValidationResponse(
+    val isValid: Boolean,
+    val athleteInfo: AthletePreviewDto? = null,
+    val message: String? = null
+)
+
+data class AthletePreviewDto(
+    val firstName: String,
+    val lastName: String,
+    val email: String?,
+    val sport: String,
+    val position: String? = null
+)
+
+data class CompleteRegistrationRequest(
+    @field:NotBlank(message = "Invitation token is required")
+    val token: String,
+    
+    @field:NotBlank(message = "Password is required")
+    @field:Size(min = 8, message = "Password must be at least 8 characters")
+    val password: String,
+    
+    @field:NotBlank(message = "Confirm password is required")
+    val confirmPassword: String
+)
+
+data class RegistrationResponse(
+    val success: Boolean,
+    val token: String? = null,
+    val user: UserDto? = null,
+    val athlete: AthleteBasicDto? = null,
+    val message: String
 )
 
 // Extension function to convert User entity to UserDto

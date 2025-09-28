@@ -12,7 +12,8 @@ import org.springframework.web.bind.annotation.*
 @RequestMapping("/athletes")
 @PreAuthorize("hasRole('COACH') or hasRole('ADMIN')")
 class AthletesController(
-    private val athleteService: AthleteService
+    private val athleteService: AthleteService,
+    private val invitationService: com.athletetracker.service.InvitationService
 ) {
 
     @GetMapping("/{id}")
@@ -30,6 +31,19 @@ class AthletesController(
         authentication: Authentication
     ): ResponseEntity<AthleteDto> {
         val createdAthlete = athleteService.createAthlete(request)
+        
+        // Send invitation if email is provided
+        if (!request.email.isNullOrBlank()) {
+            try {
+                val userId = authentication.name?.toLongOrNull() // Get coach user ID if available
+                invitationService.createInvitation(createdAthlete.id, request.email, userId)
+                println("✅ Invitation sent successfully to ${request.email}")
+            } catch (e: Exception) {
+                println("⚠️  Failed to send invitation to ${request.email}: ${e.message}")
+                // Don't fail the athlete creation if invitation fails
+            }
+        }
+        
         return ResponseEntity.ok(createdAthlete)
     }
 

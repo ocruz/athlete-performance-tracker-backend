@@ -29,7 +29,8 @@ class AuthController(
     private val jwtService: JwtService,
     private val passwordEncoder: PasswordEncoder,
     private val userRoleService: UserRoleService,
-    private val athleteService: AthleteService
+    private val athleteService: AthleteService,
+    private val invitationService: com.athletetracker.service.InvitationService
 ) {
 
     @PostMapping("/oauth2/login")
@@ -220,6 +221,124 @@ class AuthController(
         // With stateless JWT, logout is handled on the client side
         // Optionally, you could implement a token blacklist here
         return ResponseEntity.ok("Logged out successfully")
+    }
+
+    // Registration endpoints for athlete invitation system
+
+    @PostMapping("/register/validate-invitation")
+    fun validateInvitation(@RequestParam token: String): ResponseEntity<InvitationValidationResponse> {
+        try {
+            val invitation = invitationService.validateInvitation(token)
+            
+            if (invitation == null) {
+                return ResponseEntity.ok(InvitationValidationResponse(
+                    isValid = false,
+                    message = "Invalid or expired invitation token"
+                ))
+            }
+            
+            val athlete = athleteService.getAthleteEntityById(invitation.athleteId)
+            
+            return ResponseEntity.ok(InvitationValidationResponse(
+                isValid = true,
+                athleteInfo = AthletePreviewDto(
+                    firstName = athlete.firstName,
+                    lastName = athlete.lastName,
+                    email = athlete.email,
+                    sport = athlete.sport.name,
+                    position = athlete.position
+                )
+            ))
+        } catch (e: Exception) {
+            return ResponseEntity.ok(InvitationValidationResponse(
+                isValid = false,
+                message = "Error validating invitation: ${e.message}"
+            ))
+        }
+    }
+
+    @PostMapping("/register/complete")
+    fun completeRegistration(@Valid @RequestBody request: CompleteRegistrationRequest): ResponseEntity<RegistrationResponse> {
+        try {
+            // Validate passwords match
+            if (request.password != request.confirmPassword) {
+                return ResponseEntity.badRequest().body(RegistrationResponse(
+                    success = false,
+                    message = "Passwords do not match"
+                ))
+            }
+            
+            // Validate invitation
+            val invitation = invitationService.validateInvitation(request.token)
+                ?: return ResponseEntity.badRequest().body(RegistrationResponse(
+                    success = false,
+                    message = "Invalid or expired invitation"
+                ))
+            
+            val athlete = athleteService.getAthleteEntityById(invitation.athleteId)
+            
+            // Check if athlete already has a user account
+            if (athlete.userId != null) {
+                return ResponseEntity.badRequest().body(RegistrationResponse(
+                    success = false,
+                    message = "This athlete already has an account"
+                ))
+            }
+            
+            // Check if email is already registered
+            if (userRepository.existsByEmail(athlete.email!!)) {
+                return ResponseEntity.badRequest().body(RegistrationResponse(
+                    success = false,
+                    message = "An account with this email already exists"
+                ))
+            }
+            
+            // Create user account
+            val user = User(
+                firstName = athlete.firstName,
+                lastName = athlete.lastName,
+                email = athlete.email,
+                password = passwordEncoder.encode(request.password),
+                role = UserRole.ATHLETE,
+                isActive = true,
+                createdAt = LocalDateTime.now(),
+                updatedAt = LocalDateTime.now()
+            )
+            
+            val savedUser = userRepository.save(user)
+            
+            // Link athlete to user
+            athleteService.linkAthleteToUser(athlete.id, savedUser.id)
+            
+            // Mark invitation as used
+            invitationService.markInvitationAsUsed(invitation.id)
+            
+            // Generate JWT token
+            val token = jwtService.generateToken(savedUser)
+            
+            return ResponseEntity.ok(RegistrationResponse(
+                success = true,
+                token = token,
+                user = savedUser.toDto(),
+                athlete = AthleteBasicDto(
+                    id = athlete.id,
+                    firstName = athlete.firstName,
+                    lastName = athlete.lastName,
+                    fullName = athlete.fullName,
+                    sport = athlete.sport.name,
+                    position = athlete.position,
+                    dateOfBirth = athlete.dateOfBirth,
+                    email = athlete.email
+                ),
+                message = "Account created successfully"
+            ))
+            
+        } catch (e: Exception) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(RegistrationResponse(
+                success = false,
+                message = "Error creating account: ${e.message}"
+            ))
+        }
     }
 
     @ExceptionHandler(Exception::class)
