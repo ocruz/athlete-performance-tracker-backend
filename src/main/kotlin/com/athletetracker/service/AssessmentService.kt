@@ -108,6 +108,11 @@ class AssessmentService(
                 .orElseThrow { IllegalArgumentException("User not found with id: $it") }
         }
 
+        val assessmentSchedule = request.assessmentScheduleId?.let {
+            assessmentScheduleRepository.findById(it)
+                .orElseThrow { IllegalArgumentException("Assessment schedule not found with id: $it") }
+        }
+
         // Check for existing result to prevent duplicates
         val existingResult = assessmentResultRepository.findByAssessmentIdAndAthleteIdAndTestDate(
             request.assessmentId, request.athleteId, request.testDate
@@ -138,19 +143,28 @@ class AssessmentService(
             isBaseline = request.isBaseline,
             videoUrl = request.videoUrl,
             conductedBy = conductedBy,
+            assessmentSchedule = assessmentSchedule,
             improvementFromBaseline = improvementFromBaseline,
             improvementPercentage = improvementPercentage
         )
 
         val savedResult = assessmentResultRepository.save(result)
 
-        // Find and update corresponding assessment schedule(s) to COMPLETED status
-        val correspondingSchedules = assessmentScheduleRepository.findByAthleteAndAssessmentAndDate(
-            athlete, assessment, request.testDate
-        )
-        correspondingSchedules.forEach { schedule: AssessmentSchedule ->
-            if (schedule.status != ScheduleStatus.COMPLETED) {
-                assessmentScheduleRepository.save(schedule.copy(status = ScheduleStatus.COMPLETED))
+        // Update corresponding assessment schedule to COMPLETED status
+        if (assessmentSchedule != null) {
+            // If we have a specific schedule, update it directly
+            if (assessmentSchedule.status != ScheduleStatus.COMPLETED) {
+                assessmentScheduleRepository.save(assessmentSchedule.copy(status = ScheduleStatus.COMPLETED))
+            }
+        } else {
+            // Fallback: Find schedules by date and update them
+            val correspondingSchedules = assessmentScheduleRepository.findByAthleteAndAssessmentAndDate(
+                athlete, assessment, request.testDate
+            )
+            correspondingSchedules.forEach { schedule: AssessmentSchedule ->
+                if (schedule.status != ScheduleStatus.COMPLETED) {
+                    assessmentScheduleRepository.save(schedule.copy(status = ScheduleStatus.COMPLETED))
+                }
             }
         }
 
@@ -174,8 +188,9 @@ class AssessmentService(
             .orElseThrow { IllegalArgumentException("Assessment result not found with id: $id") }
     }
 
-    fun getResultsByAthlete(athleteId: Long): List<AssessmentResult> {
-        return assessmentResultRepository.findByAthleteIdOrderByTestDateDesc(athleteId)
+    fun getResultsByAthlete(athleteId: Long): List<AssessmentResultDto> {
+        val results = assessmentResultRepository.findByAthleteIdOrderByTestDateDesc(athleteId)
+        return results.map { convertToDto(it) }
     }
 
     fun getResultsByAssessment(assessmentId: Long): List<AssessmentResult> {
@@ -275,12 +290,41 @@ class AssessmentService(
         return schedules.map { convertToDto(it) }
     }
 
+    fun updateAssessmentSchedule(scheduleId: Long, request: UpdateAssessmentScheduleRequest): AssessmentSchedule {
+        val existingSchedule = assessmentScheduleRepository.findById(scheduleId)
+            .orElseThrow { IllegalArgumentException("Assessment schedule not found with id: $scheduleId") }
+
+        val updatedSchedule = existingSchedule.copy(
+            scheduledDate = request.scheduledDate ?: existingSchedule.scheduledDate,
+            scheduledTime = request.scheduledTime ?: existingSchedule.scheduledTime,
+            status = request.status ?: existingSchedule.status,
+            notes = request.notes ?: existingSchedule.notes,
+            specialInstructions = request.specialInstructions ?: existingSchedule.specialInstructions,
+            location = request.location ?: existingSchedule.location,
+            updatedAt = LocalDateTime.now()
+        )
+
+        return assessmentScheduleRepository.save(updatedSchedule)
+    }
+
+    fun deleteAssessmentSchedule(scheduleId: Long) {
+        val existingSchedule = assessmentScheduleRepository.findById(scheduleId)
+            .orElseThrow { IllegalArgumentException("Assessment schedule not found with id: $scheduleId") }
+
+        // Soft delete by setting isActive to false
+        val deletedSchedule = existingSchedule.copy(
+            isActive = false,
+            updatedAt = LocalDateTime.now()
+        )
+
+        assessmentScheduleRepository.save(deletedSchedule)
+    }
+
     fun getAthleteAssessmentSummary(athleteId: Long): AthleteAssessmentSummaryDto {
         val athlete = athleteRepository.findById(athleteId)
             .orElseThrow { IllegalArgumentException("Athlete not found with id: $athleteId") }
 
         val totalResults = assessmentResultRepository.countCompletedAssessmentsByAthleteId(athleteId)
-        val totalSchedules = assessmentScheduleRepository.countByAthleteIdAndIsActiveTrue(athleteId)
         
         val upcomingSchedules = assessmentScheduleRepository.findUpcomingAssessmentsForAthlete(
             athleteId, LocalDate.now(), LocalDate.now().plusDays(30)
@@ -292,9 +336,14 @@ class AssessmentService(
 
         val lastAssessmentDate = recentResults.maxOfOrNull { it.testDate }
 
+        // Total assessments = unique assessments that have been scheduled for this athlete
+        val allSchedulesForAthlete = assessmentScheduleRepository.findByAthleteIdAndIsActiveTrue(athleteId)
+        val uniqueAssessmentIds = allSchedulesForAthlete.map { it.assessment.id }.toSet()
+        val totalAssessmentsForAthlete = uniqueAssessmentIds.size.toLong()
+
         return AthleteAssessmentSummaryDto(
             athlete = convertToBasicDto(athlete),
-            totalAssessments = assessmentRepository.findByIsActiveTrue().size.toLong(),
+            totalAssessments = totalAssessmentsForAthlete,
             completedAssessments = totalResults,
             upcomingAssessments = upcomingSchedules.size.toLong(),
             lastAssessmentDate = lastAssessmentDate,
@@ -475,6 +524,91 @@ class AssessmentService(
             lastName = athlete.lastName,
             dateOfBirth = athlete.dateOfBirth,
             sport = athlete.sport.toString()
+        )
+    }
+
+    // Assessment management operations
+    fun duplicateAssessment(assessmentId: Long): Assessment {
+        val originalAssessment = getAssessmentById(assessmentId)
+        
+        val duplicatedAssessment = Assessment(
+            name = "${originalAssessment.name} (Copy)",
+            description = originalAssessment.description,
+            category = originalAssessment.category,
+            type = originalAssessment.type,
+            instructions = originalAssessment.instructions,
+            unit = originalAssessment.unit,
+            scoringType = originalAssessment.scoringType,
+            targetValue = originalAssessment.targetValue,
+            minValue = originalAssessment.minValue,
+            maxValue = originalAssessment.maxValue,
+            equipmentRequired = originalAssessment.equipmentRequired,
+            estimatedDuration = originalAssessment.estimatedDuration,
+            sport = originalAssessment.sport,
+            createdBy = originalAssessment.createdBy,
+            isActive = true,
+            isTemplate = originalAssessment.isTemplate
+        )
+
+        return assessmentRepository.save(duplicatedAssessment)
+    }
+
+    fun getAssessmentStatistics(assessmentId: Long): AssessmentStatisticsResponse {
+        val assessment = getAssessmentById(assessmentId)
+        
+        // Get all results for this assessment
+        val results = assessmentResultRepository.findByAssessmentId(assessmentId)
+        
+        // Get all schedules for this assessment
+        val schedules = assessmentScheduleRepository.findByAssessmentId(assessmentId)
+        
+        val totalTimesUsed = schedules.size.toLong()
+        val totalResults = results.size.toLong()
+        
+        val lastUsed = schedules.maxByOrNull { it.scheduledDate }?.scheduledDate
+        
+        val averageScore = if (results.isNotEmpty()) {
+            results.map { it.value }.average()
+        } else null
+        
+        val bestScore = if (results.isNotEmpty()) {
+            when (assessment.scoringType) {
+                "lower_better" -> results.minByOrNull { it.value }?.value
+                else -> results.maxByOrNull { it.value }?.value
+            }
+        } else null
+        
+        val worstScore = if (results.isNotEmpty()) {
+            when (assessment.scoringType) {
+                "lower_better" -> results.maxByOrNull { it.value }?.value
+                else -> results.minByOrNull { it.value }?.value
+            }
+        } else null
+        
+        // Generate recent usage data (last 30 days)
+        val thirtyDaysAgo = LocalDate.now().minusDays(30)
+        val recentResults = results.filter { it.testDate >= thirtyDaysAgo }
+        
+        val recentUsage = recentResults
+            .groupBy { it.testDate }
+            .map { (date, dayResults) ->
+                AssessmentUsageDto(
+                    date = date,
+                    athleteCount = dayResults.distinctBy { it.athlete.id }.size.toLong(),
+                    averageScore = dayResults.map { it.value }.average()
+                )
+            }
+            .sortedBy { it.date }
+        
+        return AssessmentStatisticsResponse(
+            assessment = convertToBasicDto(assessment),
+            totalTimesUsed = totalTimesUsed,
+            totalResults = totalResults,
+            lastUsed = lastUsed,
+            averageScore = averageScore,
+            bestScore = bestScore,
+            worstScore = worstScore,
+            recentUsage = recentUsage
         )
     }
 }

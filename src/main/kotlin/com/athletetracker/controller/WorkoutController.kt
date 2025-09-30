@@ -97,6 +97,15 @@ class WorkoutController(
         return ResponseEntity.ok(exercise)
     }
 
+    @DeleteMapping("/{workoutId}/exercises/{exerciseId}")
+    fun removeExerciseFromWorkout(
+        @PathVariable workoutId: Long,
+        @PathVariable exerciseId: Long
+    ): ResponseEntity<Void> {
+        workoutService.removeExerciseFromWorkout(workoutId, exerciseId)
+        return ResponseEntity.noContent().build()
+    }
+
     @ExceptionHandler(IllegalArgumentException::class)
     fun handleIllegalArgumentException(e: IllegalArgumentException): ResponseEntity<String> {
         return ResponseEntity.badRequest().body(e.message)

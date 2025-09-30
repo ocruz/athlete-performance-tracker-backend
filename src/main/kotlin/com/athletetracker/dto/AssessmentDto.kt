@@ -114,7 +114,8 @@ data class CreateAssessmentResultRequest(
     val conditions: String?,
     val isBaseline: Boolean = false,
     val videoUrl: String?,
-    val conductedById: Long?
+    val conductedById: Long?,
+    val assessmentScheduleId: Long? = null
 )
 
 // Update assessment result request
@@ -238,4 +239,23 @@ data class AssessmentActivityDto(
     val athlete: AthleteBasicDto,
     val date: LocalDateTime,
     val description: String
+)
+
+// Assessment statistics response
+data class AssessmentStatisticsResponse(
+    val assessment: AssessmentBasicDto,
+    val totalTimesUsed: Long,
+    val totalResults: Long,
+    val lastUsed: LocalDate?,
+    val averageScore: Double?,
+    val bestScore: Double?,
+    val worstScore: Double?,
+    val recentUsage: List<AssessmentUsageDto>
+)
+
+// Assessment usage data point
+data class AssessmentUsageDto(
+    val date: LocalDate,
+    val athleteCount: Long,
+    val averageScore: Double?
 )

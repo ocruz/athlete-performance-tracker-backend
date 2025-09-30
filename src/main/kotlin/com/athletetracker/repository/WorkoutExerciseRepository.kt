@@ -9,4 +9,5 @@ import org.springframework.stereotype.Repository
 interface WorkoutExerciseRepository : JpaRepository<WorkoutExercise, Long> {
     fun findByWorkoutOrderByOrderInWorkout(workout: Workout): List<WorkoutExercise>
     fun deleteByWorkout(workout: Workout)
+    fun findByWorkoutIdAndExerciseId(workoutId: Long, exerciseId: Long): WorkoutExercise?
 }

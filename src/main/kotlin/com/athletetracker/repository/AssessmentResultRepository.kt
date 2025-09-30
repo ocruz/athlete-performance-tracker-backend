@@ -19,6 +19,10 @@ interface AssessmentResultRepository : JpaRepository<AssessmentResult, Long> {
     @Query("SELECT ar FROM AssessmentResult ar WHERE ar.assessment.id = :assessmentId ORDER BY ar.testDate DESC")
     fun findByAssessmentIdOrderByTestDateDesc(@Param("assessmentId") assessmentId: Long): List<AssessmentResult>
     
+    // Find all results by assessment
+    @Query("SELECT ar FROM AssessmentResult ar JOIN FETCH ar.athlete WHERE ar.assessment.id = :assessmentId")
+    fun findByAssessmentId(@Param("assessmentId") assessmentId: Long): List<AssessmentResult>
+    
     // Find results by athlete and assessment
     @Query("SELECT ar FROM AssessmentResult ar WHERE ar.athlete.id = :athleteId AND ar.assessment.id = :assessmentId ORDER BY ar.testDate DESC")
     fun findByAthleteIdAndAssessmentIdOrderByTestDateDesc(

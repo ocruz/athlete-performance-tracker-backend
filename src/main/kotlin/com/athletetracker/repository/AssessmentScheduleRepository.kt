@@ -90,4 +90,8 @@ interface AssessmentScheduleRepository : JpaRepository<AssessmentSchedule, Long>
         @Param("assessment") assessment: Assessment,
         @Param("date") date: LocalDate
     ): List<AssessmentSchedule>
+    
+    // Find all schedules by assessment
+    @Query("SELECT asch FROM AssessmentSchedule asch WHERE asch.assessment.id = :assessmentId")
+    fun findByAssessmentId(@Param("assessmentId") assessmentId: Long): List<AssessmentSchedule>
 }

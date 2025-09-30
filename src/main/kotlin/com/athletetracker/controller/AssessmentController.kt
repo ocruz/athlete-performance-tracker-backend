@@ -86,7 +86,7 @@ class AssessmentController(
     }
 
     @GetMapping("/results/athlete/{athleteId}")
-    fun getResultsByAthlete(@PathVariable athleteId: Long): ResponseEntity<List<AssessmentResult>> {
+    fun getResultsByAthlete(@PathVariable athleteId: Long): ResponseEntity<List<AssessmentResultDto>> {
         val results = assessmentService.getResultsByAthlete(athleteId)
         return ResponseEntity.ok(results)
     }
@@ -125,11 +125,39 @@ class AssessmentController(
         return ResponseEntity.ok(schedules)
     }
 
+    @PutMapping("/schedules/{id}")
+    fun updateAssessmentSchedule(
+        @PathVariable id: Long,
+        @RequestBody request: UpdateAssessmentScheduleRequest
+    ): ResponseEntity<AssessmentSchedule> {
+        val updatedSchedule = assessmentService.updateAssessmentSchedule(id, request)
+        return ResponseEntity.ok(updatedSchedule)
+    }
+
+    @DeleteMapping("/schedules/{id}")
+    fun deleteAssessmentSchedule(@PathVariable id: Long): ResponseEntity<Void> {
+        assessmentService.deleteAssessmentSchedule(id)
+        return ResponseEntity.noContent().build()
+    }
+
     // Assessment Summary and Analytics endpoints
     @GetMapping("/summary/athlete/{athleteId}")
     fun getAthleteAssessmentSummary(@PathVariable athleteId: Long): ResponseEntity<AthleteAssessmentSummaryDto> {
         val summary = assessmentService.getAthleteAssessmentSummary(athleteId)
         return ResponseEntity.ok(summary)
+    }
+
+    // Assessment management endpoints
+    @PostMapping("/{id}/duplicate")
+    fun duplicateAssessment(@PathVariable id: Long): ResponseEntity<Assessment> {
+        val duplicatedAssessment = assessmentService.duplicateAssessment(id)
+        return ResponseEntity.status(HttpStatus.CREATED).body(duplicatedAssessment)
+    }
+
+    @GetMapping("/{id}/statistics")
+    fun getAssessmentStatistics(@PathVariable id: Long): ResponseEntity<AssessmentStatisticsResponse> {
+        val statistics = assessmentService.getAssessmentStatistics(id)
+        return ResponseEntity.ok(statistics)
     }
 
     // Utility endpoints

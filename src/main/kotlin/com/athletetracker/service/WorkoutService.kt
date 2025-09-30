@@ -38,8 +38,6 @@ class WorkoutService(
     private val exerciseRepository: ExerciseRepository,
     private val workoutExerciseRepository: WorkoutExerciseRepository,
     private val programWorkoutExerciseRepository: ProgramWorkoutExerciseRepository,
-    private val programProgressRepository: ProgramProgressRepository,
-    private val athleteProgramRepository: AthleteProgramRepository,
     private val personalRecordService: PersonalRecordService,
     private val performanceIntegrationService: PerformanceIntegrationService
 ) {
@@ -318,6 +316,19 @@ class WorkoutService(
             throw IllegalArgumentException("Workout not found with id: $id")
         }
         workoutRepository.deleteById(id)
+    }
+
+    fun removeExerciseFromWorkout(workoutId: Long, exerciseId: Long) {
+        // Verify workout exists
+        if (!workoutRepository.existsById(workoutId)) {
+            throw IllegalArgumentException("Workout not found with id: $workoutId")
+        }
+
+        // Find and delete the workout exercise
+        val workoutExercise = workoutExerciseRepository.findByWorkoutIdAndExerciseId(workoutId, exerciseId)
+            ?: throw IllegalArgumentException("Exercise with id $exerciseId not found in workout $workoutId")
+
+        workoutExerciseRepository.delete(workoutExercise)
     }
 
     fun getWorkoutsThisWeek(athleteId: Long): List<Workout> {
