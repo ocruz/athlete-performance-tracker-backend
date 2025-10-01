@@ -128,6 +128,12 @@ class ResourceServerConfig(
                     .requestMatchers(HttpMethod.PUT, "/api/programs/**").hasAnyRole("COACH", "ADMIN")
                     .requestMatchers(HttpMethod.DELETE, "/api/programs/**").hasAnyRole("COACH", "ADMIN")
                     
+                    // Consolidated endpoints - method-level security is handled by @PreAuthorize
+                    .requestMatchers("/api/workouts/**").authenticated()
+                    .requestMatchers("/api/athletes/**").authenticated()
+                    .requestMatchers("/api/athlete-programs/**").authenticated()
+                    .requestMatchers("/api/performance-metrics/**").authenticated()
+                    
                     // All other requests require authentication
                     .anyRequest().authenticated()
             }

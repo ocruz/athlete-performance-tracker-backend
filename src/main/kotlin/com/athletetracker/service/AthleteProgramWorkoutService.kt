@@ -36,7 +36,7 @@ class AthleteProgramWorkoutService(
     private val performanceIntegrationService: PerformanceIntegrationService
 ) {
 
-    fun createWorkout(request: CreateAthleteWorkoutRequest): Any {
+    fun createWorkout(request: CreateAthleteWorkoutRequest): AthleteWorkoutDto {
         val athlete = athleteRepository.findById(request.athleteId)
             .orElseThrow { IllegalArgumentException("Athlete not found with id: ${request.athleteId}") }
         
@@ -90,7 +90,7 @@ class AthleteProgramWorkoutService(
             return convertToDto(savedWorkout, athleteWorkoutExercises)
         }
 
-        return savedWorkout
+        return convertToDto(savedWorkout, emptyList())
     }
 
     fun getWorkoutById(id: Long): AthleteWorkoutDto {
@@ -117,22 +117,24 @@ class AthleteProgramWorkoutService(
             .map { convertToDto(it, it.athleteWorkoutExercises) }
     }
 
-    fun getWorkoutsByCoach(coachId: Long): List<AthleteWorkout> {
+    fun getWorkoutsByCoach(coachId: Long): List<AthleteWorkoutDto> {
         val coach = userRepository.findById(coachId)
             .orElseThrow { IllegalArgumentException("Coach not found with id: $coachId") }
         
         return athleteWorkoutRepository.findByCoachOrderByWorkoutDateDesc(coach)
+            .map { convertToDto(it, it.athleteWorkoutExercises) }
     }
 
     fun getWorkoutsByAthleteInDateRange(
         athleteId: Long, 
         startDate: LocalDateTime, 
         endDate: LocalDateTime
-    ): List<AthleteWorkout> {
+    ): List<AthleteWorkoutDto> {
         val athlete = athleteRepository.findById(athleteId)
             .orElseThrow { IllegalArgumentException("Athlete not found with id: $athleteId") }
         
         return athleteWorkoutRepository.findByAthleteAndDateRange(athlete, startDate, endDate)
+            .map { convertToDto(it, it.athleteWorkoutExercises) }
     }
 
 
@@ -297,7 +299,7 @@ class AthleteProgramWorkoutService(
     }
 
 
-    fun updateWorkout(id: Long, request: UpdateWorkoutRequest): AthleteWorkout {
+    fun updateWorkout(id: Long, request: UpdateWorkoutRequest): AthleteWorkoutDto {
         val existingWorkout = athleteWorkoutRepository.findById(id)
             .orElseThrow { IllegalArgumentException("Workout not found with id: $id") }
 
@@ -308,7 +310,8 @@ class AthleteProgramWorkoutService(
             duration = request.duration ?: existingWorkout.duration
         )
 
-        return athleteWorkoutRepository.save(updatedWorkout)
+        val savedWorkout = athleteWorkoutRepository.save(updatedWorkout)
+        return convertToDto(savedWorkout, savedWorkout.athleteWorkoutExercises)
     }
 
     fun deleteWorkout(id: Long) {

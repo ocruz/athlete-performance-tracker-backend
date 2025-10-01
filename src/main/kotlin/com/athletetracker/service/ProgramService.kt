@@ -17,7 +17,7 @@ class ProgramService(
     private val programWorkoutExerciseRepository: ProgramWorkoutExerciseRepository
 ) {
 
-    fun createBasicProgram(request: CreateBasicProgramRequest): Program {
+    fun createBasicProgram(request: CreateBasicProgramRequest): ProgramDto {
         val createdBy = userRepository.findById(request.createdById)
             .orElseThrow { IllegalArgumentException("User not found with id: ${request.createdById}") }
 
@@ -32,7 +32,8 @@ class ProgramService(
             isTemplate = request.isTemplate ?: false
         )
 
-        return programRepository.save(program)
+        val savedProgram = programRepository.save(program)
+        return convertToDto(savedProgram)
     }
 
     fun getProgramById(id: Long): ProgramDetailResponse {
@@ -131,34 +132,34 @@ class ProgramService(
         )
     }
 
-    fun getAllActivePrograms(): List<Program> {
-        return programRepository.findByIsActiveTrue()
+    fun getAllActivePrograms(): List<ProgramDto> {
+        return programRepository.findByIsActiveTrue().map { convertToDto(it) }
     }
 
-    fun getProgramTemplates(): List<Program> {
-        return programRepository.findByIsActiveTrueAndIsTemplateTrue()
+    fun getProgramTemplates(): List<ProgramDto> {
+        return programRepository.findByIsActiveTrueAndIsTemplateTrue().map { convertToDto(it) }
     }
 
-    fun getProgramsBySport(sport: Sport): List<Program> {
-        return programRepository.findByIsActiveTrueAndSport(sport)
+    fun getProgramsBySport(sport: Sport): List<ProgramDto> {
+        return programRepository.findByIsActiveTrueAndSport(sport).map { convertToDto(it) }
     }
 
-    fun getProgramTemplatesBySport(sport: Sport): List<Program> {
-        return programRepository.findByIsActiveTrueAndSportAndIsTemplateTrue(sport)
+    fun getProgramTemplatesBySport(sport: Sport): List<ProgramDto> {
+        return programRepository.findByIsActiveTrueAndSportAndIsTemplateTrue(sport).map { convertToDto(it) }
     }
 
-    fun getProgramsByCreator(creatorId: Long): List<Program> {
+    fun getProgramsByCreator(creatorId: Long): List<ProgramDto> {
         val creator = userRepository.findById(creatorId)
             .orElseThrow { IllegalArgumentException("User not found with id: $creatorId") }
         
-        return programRepository.findByCreatedByOrderByCreatedAtDesc(creator)
+        return programRepository.findByCreatedByOrderByCreatedAtDesc(creator).map { convertToDto(it) }
     }
 
-    fun searchPrograms(query: String): List<Program> {
-        return programRepository.searchActivePrograms(query)
+    fun searchPrograms(query: String): List<ProgramDto> {
+        return programRepository.searchActivePrograms(query).map { convertToDto(it) }
     }
 
-    fun updateProgram(id: Long, request: UpdateProgramRequest): Program {
+    fun updateProgram(id: Long, request: UpdateProgramRequest): ProgramDto {
         val existingProgram = programRepository.findById(id)
             .orElseThrow { IllegalArgumentException("Program not found with id: $id") }
 
@@ -171,7 +172,8 @@ class ProgramService(
             updatedAt = LocalDateTime.now()
         )
 
-        return programRepository.save(updatedProgram)
+        val savedProgram = programRepository.save(updatedProgram)
+        return convertToDto(savedProgram)
     }
 
     fun deleteProgram(id: Long) {
@@ -181,7 +183,7 @@ class ProgramService(
         programRepository.save(deactivatedProgram)
     }
 
-    fun duplicateProgram(id: Long, request: DuplicateProgramRequest): Program {
+    fun duplicateProgram(id: Long, request: DuplicateProgramRequest): ProgramDto {
         val originalProgram = programRepository.findById(id)
             .orElseThrow { IllegalArgumentException("Program not found with id: $id") }
         val createdBy = userRepository.findById(request.createdById)
@@ -199,7 +201,8 @@ class ProgramService(
             isTemplate = request.isTemplate ?: false
         )
 
-        return programRepository.save(duplicateProgram)
+        val savedProgram = programRepository.save(duplicateProgram)
+        return convertToDto(savedProgram)
     }
     
     fun convertToDto(program: Program): ProgramDto {
@@ -577,17 +580,3 @@ data class DuplicateProgramRequest(
 )
 
 // Response DTOs
-data class ProgramDto(
-    val id: Long,
-    val name: String,
-    val description: String?,
-    val sport: Sport,
-    val durationWeeks: Int?,
-    val difficultyLevel: String?,
-    val goals: String?,
-    val isActive: Boolean,
-    val isTemplate: Boolean,
-    val createdBy: UserBasicDto,
-    val createdAt: String,
-    val updatedAt: String
-)

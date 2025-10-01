@@ -1,11 +1,12 @@
 package com.athletetracker.controller
 
 import com.athletetracker.dto.*
+import com.athletetracker.entity.Sport
 import com.athletetracker.entity.User
+import com.athletetracker.service.AthleteService
 import com.athletetracker.service.AthleteProgramService
 import com.athletetracker.service.AthleteDashboardService
 import com.athletetracker.service.AthleteProgramWorkoutService
-import com.athletetracker.service.AthleteService
 import com.athletetracker.service.UserProfileService
 import com.athletetracker.repository.AthleteRepository
 import jakarta.validation.Valid
@@ -16,18 +17,110 @@ import org.springframework.web.bind.annotation.*
 import org.springframework.web.multipart.MultipartFile
 
 @RestController
-@RequestMapping("/athlete")
-@PreAuthorize("hasRole('ATHLETE')")
-class AthleteController(
+class AthleteManagementController(
+    private val athleteService: AthleteService,
     private val athleteProgramService: AthleteProgramService,
     private val athleteDashboardService: AthleteDashboardService,
-    private val athleteRepository: AthleteRepository,
     private val athleteProgramWorkoutService: AthleteProgramWorkoutService,
-    private val athleteService: AthleteService,
-    userProfileService: UserProfileService
+    private val athleteRepository: AthleteRepository,
+    userProfileService: UserProfileService,
+    private val invitationService: com.athletetracker.service.InvitationService
 ) : BaseProfileController(userProfileService) {
 
-    @GetMapping("/profile")
+    // ===== ADMIN/COACH ATHLETE MANAGEMENT ENDPOINTS (/athletes/*) =====
+
+    @GetMapping("/athletes")
+    @PreAuthorize("hasRole('COACH') or hasRole('ADMIN')")
+    fun getAllAthletes(authentication: Authentication): ResponseEntity<List<AthleteDto>> {
+        val athletes = athleteService.getAllAthletes()
+        return ResponseEntity.ok(athletes)
+    }
+
+    @GetMapping("/athletes/{id}")
+    @PreAuthorize("hasRole('COACH') or hasRole('ADMIN')")
+    fun getAthleteById(
+        @PathVariable id: Long,
+        authentication: Authentication
+    ): ResponseEntity<AthleteDto> {
+        val athlete = athleteService.getAthleteById(id)
+        return ResponseEntity.ok(athlete)
+    }
+
+    @PostMapping("/athletes")
+    @PreAuthorize("hasRole('COACH') or hasRole('ADMIN')")
+    fun createAthlete(
+        @RequestBody request: CreateAthleteRequest,
+        authentication: Authentication
+    ): ResponseEntity<AthleteDto> {
+        val createdAthlete = athleteService.createAthlete(request)
+        
+        // Send invitation if email is provided
+        if (!request.email.isNullOrBlank()) {
+            try {
+                val userId = authentication.name?.toLongOrNull() // Get coach user ID if available
+                invitationService.createInvitation(createdAthlete.id, request.email, userId)
+                println("✅ Invitation sent successfully to ${request.email}")
+            } catch (e: Exception) {
+                println("⚠️  Failed to send invitation to ${request.email}: ${e.message}")
+                // Don't fail the athlete creation if invitation fails
+            }
+        }
+        
+        return ResponseEntity.ok(createdAthlete)
+    }
+
+    @PutMapping("/athletes/{id}")
+    @PreAuthorize("hasRole('COACH') or hasRole('ADMIN')")
+    fun updateAthlete(
+        @PathVariable id: Long,
+        @RequestBody request: UpdateAthleteRequest,
+        authentication: Authentication
+    ): ResponseEntity<AthleteDto> {
+        val updatedAthlete = athleteService.updateAthlete(id, request)
+        return ResponseEntity.ok(updatedAthlete)
+    }
+
+    @DeleteMapping("/athletes/{id}")
+    @PreAuthorize("hasRole('COACH') or hasRole('ADMIN')")
+    fun deleteAthlete(
+        @PathVariable id: Long,
+        authentication: Authentication
+    ): ResponseEntity<Void> {
+        athleteService.deleteAthlete(id)
+        return ResponseEntity.noContent().build()
+    }
+
+    @GetMapping("/athletes/sports/{sport}")
+    @PreAuthorize("hasRole('COACH') or hasRole('ADMIN')")
+    fun getAthletesBySport(
+        @PathVariable sport: Sport,
+        authentication: Authentication
+    ): ResponseEntity<List<AthleteDto>> {
+        val athletes = athleteService.getAthletesBySport(sport)
+        return ResponseEntity.ok(athletes)
+    }
+
+    @PostMapping("/athletes/search")
+    @PreAuthorize("hasRole('COACH') or hasRole('ADMIN')")
+    fun searchAthletes(
+        @RequestBody searchRequest: AthleteSearchRequest,
+        authentication: Authentication
+    ): ResponseEntity<List<AthleteDto>> {
+        val athletes = athleteService.searchAthletes(searchRequest)
+        return ResponseEntity.ok(athletes)
+    }
+
+    @GetMapping("/athletes/stats")
+    @PreAuthorize("hasRole('COACH') or hasRole('ADMIN')")
+    fun getAthleteStats(authentication: Authentication): ResponseEntity<Map<String, Any>> {
+        val stats = athleteService.getAthleteStats()
+        return ResponseEntity.ok(stats)
+    }
+
+    // ===== ATHLETE SELF-SERVICE ENDPOINTS (/athlete/*) =====
+
+    @GetMapping("/athlete/profile")
+    @PreAuthorize("hasRole('ATHLETE')")
     fun getAthleteProfile(authentication: Authentication): ResponseEntity<CompleteProfileDto.AthleteProfile> {
         val userId = getUserIdFromAuthentication(authentication)
         val user = getUserFromAuthentication(authentication)
@@ -39,7 +132,8 @@ class AthleteController(
         return ResponseEntity.ok(completeProfile)
     }
 
-    @PutMapping("/profile")
+    @PutMapping("/athlete/profile")
+    @PreAuthorize("hasRole('ATHLETE')")
     fun updateAthleteProfile(
         @Valid @RequestBody updateRequest: UpdateAthleteRequest,
         authentication: Authentication
@@ -49,7 +143,8 @@ class AthleteController(
         return ResponseEntity.ok(updatedAthlete)
     }
 
-    @PostMapping("/profile/photo")
+    @PostMapping("/athlete/profile/photo")
+    @PreAuthorize("hasRole('ATHLETE')")
     override fun uploadProfilePhoto(
         @RequestParam("file") file: MultipartFile,
         authentication: Authentication
@@ -74,16 +169,16 @@ class AthleteController(
         return ResponseEntity.ok(updatedAthlete)
     }
 
-    // ===== ATHLETE DASHBOARD AND PROGRAM ENDPOINTS =====
-
-    @GetMapping("/dashboard")
+    @GetMapping("/athlete/dashboard")
+    @PreAuthorize("hasRole('ATHLETE')")
     fun getDashboard(authentication: Authentication): ResponseEntity<AthleteDashboardResponse> {
         val user = authentication.principal as User
         val dashboardData = athleteDashboardService.getDashboardData(user)
         return ResponseEntity.ok(dashboardData)
     }
 
-    @GetMapping("/programs")
+    @GetMapping("/athlete/programs")
+    @PreAuthorize("hasRole('ATHLETE')")
     fun getMyPrograms(authentication: Authentication): ResponseEntity<List<AthleteProgramResponse>> {
         val user = authentication.principal as User
         val athlete = athleteRepository.findByUserId(user.id)
@@ -93,7 +188,8 @@ class AthleteController(
         return ResponseEntity.ok(programs)
     }
 
-    @GetMapping("/programs/active")
+    @GetMapping("/athlete/programs/active")
+    @PreAuthorize("hasRole('ATHLETE')")
     fun getActivePrograms(authentication: Authentication): ResponseEntity<List<AthleteProgramResponse>> {
         val user = authentication.principal as User
         val athlete = athleteRepository.findByUserId(user.id)
@@ -103,7 +199,8 @@ class AthleteController(
         return ResponseEntity.ok(activePrograms)
     }
 
-    @GetMapping("/workouts")
+    @GetMapping("/athlete/workouts")
+    @PreAuthorize("hasRole('ATHLETE')")
     fun getMyWorkouts(authentication: Authentication): ResponseEntity<List<AthleteWorkoutDto>> {
         val user = authentication.principal as User
         val athlete = athleteRepository.findByUserId(user.id)

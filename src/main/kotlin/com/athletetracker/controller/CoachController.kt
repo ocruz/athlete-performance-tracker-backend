@@ -1,8 +1,6 @@
 package com.athletetracker.controller
 
 import com.athletetracker.dto.*
-import com.athletetracker.entity.Athlete
-import com.athletetracker.entity.AthleteProgram
 import com.athletetracker.entity.Program
 import com.athletetracker.entity.ProgramStatus
 import com.athletetracker.entity.User
@@ -180,7 +178,7 @@ class CoachController(
     }
 
     @GetMapping("/programs")
-    fun getMyPrograms(authentication: Authentication): ResponseEntity<List<Program>> {
+    fun getMyPrograms(authentication: Authentication): ResponseEntity<List<ProgramDto>> {
         val user = authentication.principal as User
         val coachId = user.id
         
@@ -197,74 +195,3 @@ class CoachController(
         )
     }
 }
-
-// Response DTOs for coach endpoints
-data class CoachDashboardResponse(
-    val coach: CoachBasicInfo,
-    val managedAthletes: List<AthleteOverview>,
-    val recentAssignments: List<RecentAssignment>,
-    val programStats: ProgramStats
-)
-
-data class CoachBasicInfo(
-    val id: Long,
-    val name: String,
-    val email: String
-)
-
-data class AthleteOverview(
-    val id: Long,
-    val name: String,
-    val sport: String,
-    val activePrograms: Int,
-    val lastActivity: java.time.LocalDate?
-)
-
-data class RecentAssignment(
-    val id: Long,
-    val athleteName: String,
-    val programName: String,
-    val assignedDate: java.time.LocalDate,
-    val status: String
-)
-
-data class ProgramStats(
-    val totalPrograms: Int,
-    val activeAssignments: Int,
-    val completionRate: Double
-)
-
-data class AthleteWithPrograms(
-    val athlete: AthleteBasicDto,
-    val assignedPrograms: List<AthleteProgramResponse>,
-    val progressSummary: AthleteProgressSummary
-)
-
-data class AthleteProgressSummary(
-    val totalPrograms: Int,
-    val activePrograms: Int,
-    val completedPrograms: Int,
-    val averageCompletion: Double
-)
-
-data class TeamAnalyticsResponse(
-    val totalAthletes: Int,
-    val totalPrograms: Int,
-    val averageCompletion: Double,
-    val topPerformers: List<AthletePerformance>,
-    val programEffectiveness: List<ProgramEffectiveness>
-)
-
-data class AthletePerformance(
-    val athleteId: Long,
-    val athleteName: String,
-    val completionRate: Double,
-    val averageRPE: Double
-)
-
-data class ProgramEffectiveness(
-    val programId: Long,
-    val programName: String,
-    val completionRate: Double,
-    val satisfactionScore: Double
-)
