@@ -16,6 +16,7 @@ class AthleteProgramService(
     private val athleteRepository: AthleteRepository,
     private val programRepository: ProgramRepository,
     private val userRepository: UserRepository,
+    private val athleteWorkoutExerciseRepository: AthleteWorkoutExerciseRepository,
 ) {
 
     fun assignProgram(request: AssignProgramRequest, assignedById: Long): AthleteProgramResponse {
@@ -120,7 +121,8 @@ class AthleteProgramService(
 
     private fun calculateProgressSummary(athleteProgram: AthleteProgram): ProgramProgressSummary {
         val totalExercises = athleteProgram.program.programWorkouts.sumOf { it.exercises.size }
-        val completedExercises = programProgressRepository.countCompletedExercisesByAthleteProgramId(athleteProgram.id)
+        // Use actual athlete workout exercise completions instead of program progress tracking
+        val completedExercises = athleteWorkoutExerciseRepository.countCompletedExercisesByAthleteProgram(athleteProgram.id)
         val completionPercentage = if (totalExercises > 0) {
             (completedExercises.toDouble() / totalExercises.toDouble()) * 100
         } else 0.0
@@ -129,11 +131,11 @@ class AthleteProgramService(
         val daysSinceStart = ChronoUnit.DAYS.between(athleteProgram.startDate, java.time.LocalDate.now())
         val currentWeek = if (daysSinceStart >= 0) ((daysSinceStart / 7) + 1).toInt() else null
 
-        // Get last activity date
+        // Get last activity date from actual workout completions (keeping program progress for now as fallback)
         val progressEntries = programProgressRepository.findByAthleteProgramId(athleteProgram.id)
         val lastActivityDate = progressEntries.maxByOrNull { it.completedDate }?.completedDate
 
-        // Calculate adherence rate (simplified - completed vs planned)
+        // Calculate adherence rate based on actual workout completions
         val adherenceRate = if (totalExercises > 0) {
             (completedExercises.toDouble() / totalExercises.toDouble()) * 100
         } else 0.0

@@ -4,7 +4,6 @@ import com.athletetracker.entity.*
 import com.athletetracker.repository.PerformanceMetricRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import java.time.LocalDateTime
 
 /**
  * Service responsible for integrating performance data across assessments, workouts, and metrics.
@@ -58,27 +57,27 @@ class PerformanceIntegrationService(
      * Creates a performance metric from a workout exercise PR
      */
     fun createMetricFromWorkoutPR(
-        workoutExercise: WorkoutExercise,
+        athleteWorkoutExercise: AthleteWorkoutExercise,
         metricType: MetricType,
         metricValue: Double,
         unit: String
     ): PerformanceMetric? {
         // Check if this workout exercise already has a metric
-        val existing = performanceMetricRepository.findBySourceWorkoutExercise(workoutExercise)
+        val existing = performanceMetricRepository.findBySourceWorkoutExercise(athleteWorkoutExercise)
         if (existing != null) {
             return existing
         }
         
         val metric = PerformanceMetric(
-            athlete = workoutExercise.workout.athlete,
+            athlete = athleteWorkoutExercise.athleteWorkout.athlete,
             metricType = metricType,
             metricValue = metricValue,
             unit = unit,
-            testDate = workoutExercise.workout.workoutDate,
-            notes = "Generated from workout PR: ${workoutExercise.exercise.name}",
-            recordedBy = workoutExercise.workout.coach,
+            testDate = athleteWorkoutExercise.athleteWorkout.workoutDate,
+            notes = "Generated from workout PR: ${athleteWorkoutExercise.exercise.name}",
+            recordedBy = athleteWorkoutExercise.athleteWorkout.coach,
             sourceType = PerformanceMetricSource.WORKOUT_PR,
-            sourceWorkoutExercise = workoutExercise,
+            sourceWorkoutExercise = athleteWorkoutExercise,
             isPersonalRecord = true // By definition, if we're creating from a PR, it's a personal record
         )
         

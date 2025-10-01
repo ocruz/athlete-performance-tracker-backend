@@ -48,7 +48,7 @@ data class AthleteProgram(
 
     @OneToMany(mappedBy = "athleteProgram", cascade = [CascadeType.ALL], fetch = FetchType.LAZY)
     @JsonIgnore
-    val progressEntries: List<ProgramProgress> = emptyList()
+    val progressEntries: List<AthleteExerciseCompletions> = emptyList()
 )
 
 enum class ProgramStatus {

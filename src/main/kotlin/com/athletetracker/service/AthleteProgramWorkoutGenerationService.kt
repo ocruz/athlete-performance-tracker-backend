@@ -6,23 +6,21 @@ import com.athletetracker.repository.*
 import jakarta.transaction.Transactional
 import org.springframework.stereotype.Service
 import java.time.LocalDate
-import java.time.LocalDateTime
 
 @Service
 @Transactional
-class WorkoutGenerationService(
+class AthleteProgramWorkoutGenerationService(
     private val athleteProgramRepository: AthleteProgramRepository,
-    private val workoutRepository: WorkoutRepository,
-    private val workoutExerciseRepository: WorkoutExerciseRepository,
+    private val athleteWorkoutRepository: AthleteWorkoutRepository,
+    private val athleteWorkoutExerciseRepository: AthleteWorkoutExerciseRepository,
     private val programWorkoutRepository: ProgramWorkoutRepository,
-    private val programWorkoutExerciseRepository: ProgramWorkoutExerciseRepository
 ) {
 
     fun generateWorkoutsFromProgram(
         athleteProgramId: Long,
         startDate: LocalDate,
         numberOfWeeks: Int
-    ): List<WorkoutDto> {
+    ): List<AthleteWorkoutDto> {
         val athleteProgram = athleteProgramRepository.findById(athleteProgramId)
             .orElseThrow { IllegalArgumentException("Athlete program not found with id: $athleteProgramId") }
 
@@ -35,7 +33,7 @@ class WorkoutGenerationService(
             throw IllegalArgumentException("No active workout templates found in program: ${athleteProgram.program.name}")
         }
 
-        val generatedWorkouts = mutableListOf<Workout>()
+        val generatedAthleteWorkouts = mutableListOf<AthleteWorkout>()
 
         // Generate workouts for specified number of weeks
         for (week in 0 until numberOfWeeks) {
@@ -46,7 +44,7 @@ class WorkoutGenerationService(
                 val workoutDate = weekStartDate.plusDays(dayIndex.toLong())
                 
                 // Check if workout already exists for this date
-                val existingWorkout = workoutRepository.findByAthleteAndWorkoutDate(
+                val existingWorkout = athleteWorkoutRepository.findByAthleteAndWorkoutDate(
                     athleteProgram.athlete, 
                     workoutDate.atStartOfDay()
                 )
@@ -58,13 +56,13 @@ class WorkoutGenerationService(
                         athleteProgram.assignedBy,
                         workoutDate
                     )
-                    generatedWorkouts.add(workout)
+                    generatedAthleteWorkouts.add(workout)
                 }
             }
         }
 
         // Save all generated workouts
-        val savedWorkouts = workoutRepository.saveAll(generatedWorkouts)
+        val savedWorkouts = athleteWorkoutRepository.saveAll(generatedAthleteWorkouts)
         
         // Convert to DTOs and return
         return savedWorkouts.map { convertToWorkoutDto(it) }
@@ -75,9 +73,9 @@ class WorkoutGenerationService(
         athlete: Athlete,
         coach: User,
         workoutDate: LocalDate
-    ): Workout {
+    ): AthleteWorkout {
         // Create the workout from template
-        val workout = Workout(
+        val athleteWorkout = AthleteWorkout(
             athlete = athlete,
             coach = coach,
             programWorkout = programWorkout,
@@ -86,14 +84,14 @@ class WorkoutGenerationService(
             notes = programWorkout.notes
         )
 
-        val savedWorkout = workoutRepository.save(workout)
+        val savedWorkout = athleteWorkoutRepository.save(athleteWorkout)
 
         // Create workout exercises from template
-        val workoutExercises = programWorkout.exercises
+        val athleteWorkoutExercises = programWorkout.exercises
             .sortedBy { it.orderInWorkout }
             .map { programWorkoutExercise ->
-                WorkoutExercise(
-                    workout = savedWorkout,
+                AthleteWorkoutExercise(
+                    athleteWorkout = savedWorkout,
                     exercise = programWorkoutExercise.exercise,
                     programWorkoutExercise = programWorkoutExercise,
                     plannedSets = programWorkoutExercise.sets,
@@ -110,38 +108,38 @@ class WorkoutGenerationService(
                 )
             }
 
-        workoutExerciseRepository.saveAll(workoutExercises)
+        athleteWorkoutExerciseRepository.saveAll(athleteWorkoutExercises)
 
         return savedWorkout
     }
 
-    fun getGeneratedWorkouts(athleteProgramId: Long): List<WorkoutDto> {
+    fun getGeneratedWorkouts(athleteProgramId: Long): List<AthleteWorkoutDto> {
         val athleteProgram = athleteProgramRepository.findById(athleteProgramId)
             .orElseThrow { IllegalArgumentException("Athlete program not found with id: $athleteProgramId") }
 
-        val workouts = workoutRepository.findByAthleteAndProgramWorkoutNotNull(athleteProgram.athlete)
+        val workouts = athleteWorkoutRepository.findByAthleteAndProgramWorkoutNotNull(athleteProgram.athlete)
             .filter { it.programWorkout?.program?.id == athleteProgram.program.id }
             .sortedBy { it.workoutDate }
 
         return workouts.map { convertToWorkoutDto(it) }
     }
 
-    fun regenerateWorkoutFromTemplate(workoutId: Long): WorkoutDto {
-        val existingWorkout = workoutRepository.findById(workoutId)
+    fun regenerateWorkoutFromTemplate(workoutId: Long): AthleteWorkoutDto {
+        val existingWorkout = athleteWorkoutRepository.findById(workoutId)
             .orElseThrow { IllegalArgumentException("Workout not found with id: $workoutId") }
 
         val programWorkout = existingWorkout.programWorkout
             ?: throw IllegalArgumentException("Workout is not linked to a program template")
 
         // Clear existing exercises
-        workoutExerciseRepository.deleteByWorkout(existingWorkout)
+        athleteWorkoutExerciseRepository.deleteByAthleteWorkout(existingWorkout)
 
         // Recreate exercises from template
         val newExercises = programWorkout.exercises
             .sortedBy { it.orderInWorkout }
             .map { programWorkoutExercise ->
-                WorkoutExercise(
-                    workout = existingWorkout,
+                AthleteWorkoutExercise(
+                    athleteWorkout = existingWorkout,
                     exercise = programWorkoutExercise.exercise,
                     programWorkoutExercise = programWorkoutExercise,
                     plannedSets = programWorkoutExercise.sets,
@@ -158,28 +156,28 @@ class WorkoutGenerationService(
                 )
             }
 
-        workoutExerciseRepository.saveAll(newExercises)
+        athleteWorkoutExerciseRepository.saveAll(newExercises)
 
         return convertToWorkoutDto(existingWorkout)
     }
 
-    private fun convertToWorkoutDto(workout: Workout): WorkoutDto {
-        return WorkoutDto(
-            id = workout.id,
+    private fun convertToWorkoutDto(athleteWorkout: AthleteWorkout): AthleteWorkoutDto {
+        return AthleteWorkoutDto(
+            id = athleteWorkout.id,
             athlete = AthleteBasicDto(
-                id = workout.athlete.id,
-                firstName = workout.athlete.firstName,
-                lastName = workout.athlete.lastName,
-                sport = workout.athlete.sport.name,
-                dateOfBirth = workout.athlete.dateOfBirth
+                id = athleteWorkout.athlete.id,
+                firstName = athleteWorkout.athlete.firstName,
+                lastName = athleteWorkout.athlete.lastName,
+                sport = athleteWorkout.athlete.sport.name,
+                dateOfBirth = athleteWorkout.athlete.dateOfBirth
             ),
             coach = UserBasicDto(
-                id = workout.coach.id,
-                firstName = workout.coach.firstName,
-                lastName = workout.coach.lastName,
-                email = workout.coach.email
+                id = athleteWorkout.coach.id,
+                firstName = athleteWorkout.coach.firstName,
+                lastName = athleteWorkout.coach.lastName,
+                email = athleteWorkout.coach.email
             ),
-            programWorkout = workout.programWorkout?.let {
+            programWorkout = athleteWorkout.programWorkout?.let {
                 ProgramWorkoutBasicDto(
                     id = it.id,
                     name = it.name,
@@ -190,14 +188,14 @@ class WorkoutGenerationService(
                     exerciseCount = it.exercises.size
                 )
             },
-            workoutDate = workout.workoutDate,
-            name = workout.name,
-            notes = workout.notes,
-            rpe = workout.rpe,
-            duration = workout.duration,
-            createdAt = workout.createdAt,
-            workoutExercises = workout.workoutExercises.map { exercise ->
-                WorkoutExerciseDto(
+            workoutDate = athleteWorkout.workoutDate,
+            name = athleteWorkout.name,
+            notes = athleteWorkout.notes,
+            rpe = athleteWorkout.rpe,
+            duration = athleteWorkout.duration,
+            createdAt = athleteWorkout.createdAt,
+            workoutExercises = athleteWorkout.athleteWorkoutExercises.map { exercise ->
+                AthleteWorkoutExerciseDto(
                     id = exercise.id,
                     exercise = ExerciseBasicDto(
                         id = exercise.exercise.id,
@@ -263,24 +261,24 @@ class WorkoutGenerationService(
                     restTime = exercise.actualRestTime ?: exercise.plannedRestTime
                 )
             },
-            summary = WorkoutSummaryDto(
-                totalExercises = workout.workoutExercises.size,
-                completedExercises = workout.workoutExercises.count { it.sets != null && it.reps != null },
-                skippedExercises = workout.workoutExercises.count { it.sets == null && it.reps == null },
-                modifiedExercises = workout.workoutExercises.count { we ->
+            summary = AthleteWorkoutSummaryDto(
+                totalExercises = athleteWorkout.athleteWorkoutExercises.size,
+                completedExercises = athleteWorkout.athleteWorkoutExercises.count { it.sets != null && it.reps != null },
+                skippedExercises = athleteWorkout.athleteWorkoutExercises.count { it.sets == null && it.reps == null },
+                modifiedExercises = athleteWorkout.athleteWorkoutExercises.count { we ->
                     we.actualSets != null && we.actualReps != null && we.actualWeight != null && we.actualDistance != null && we.actualTime != null && we.actualRestTime != null && we.actualIntensity != null
                 },
-                averageRpe = workout.workoutExercises
+                averageRpe = athleteWorkout.athleteWorkoutExercises
                     .mapNotNull { it.rpe?.toDouble() }
                     .takeIf { it.isNotEmpty() }
                     ?.average(),
-                adherencePercentage = if (workout.workoutExercises.isNotEmpty()) {
-                    (workout.workoutExercises.count { it.completionStatus == ExerciseCompletionStatus.COMPLETED }.toDouble() / 
-                     workout.workoutExercises.size * 100)
+                adherencePercentage = if (athleteWorkout.athleteWorkoutExercises.isNotEmpty()) {
+                    (athleteWorkout.athleteWorkoutExercises.count { it.completionStatus == ExerciseCompletionStatus.COMPLETED }.toDouble() /
+                     athleteWorkout.athleteWorkoutExercises.size * 100)
                 } else 0.0,
-                workoutType = workout.programWorkout?.workoutType?.name,
-                estimatedDuration = workout.programWorkout?.estimatedDuration,
-                actualDuration = workout.duration
+                workoutType = athleteWorkout.programWorkout?.workoutType?.name,
+                estimatedDuration = athleteWorkout.programWorkout?.estimatedDuration,
+                actualDuration = athleteWorkout.duration
             )
         )
     }

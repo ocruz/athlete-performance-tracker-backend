@@ -2,7 +2,7 @@ package com.athletetracker.dto
 
 import java.time.LocalDateTime
 
-data class WorkoutDto(
+data class AthleteWorkoutDto(
     val id: Long,
     val athlete: AthleteBasicDto,
     val coach: UserBasicDto,
@@ -13,11 +13,11 @@ data class WorkoutDto(
     val rpe: Int?,
     val duration: Int?,
     val createdAt: LocalDateTime,
-    val workoutExercises: List<WorkoutExerciseDto>,
-    val summary: WorkoutSummaryDto
+    val workoutExercises: List<AthleteWorkoutExerciseDto>,
+    val summary: AthleteWorkoutSummaryDto
 )
 
-data class WorkoutExerciseDto(
+data class AthleteWorkoutExerciseDto(
     val id: Long,
     val exercise: ExerciseBasicDto,
     val programWorkoutExercise: ProgramWorkoutExerciseDto?, // Link to template exercise
@@ -57,7 +57,7 @@ data class ActualExerciseDto(
     val intensity: Double?
 )
 
-data class WorkoutSummaryDto(
+data class AthleteWorkoutSummaryDto(
     val totalExercises: Int,
     val completedExercises: Int,
     val skippedExercises: Int,

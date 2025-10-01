@@ -4,7 +4,7 @@ import com.athletetracker.dto.*
 import com.athletetracker.entity.User
 import com.athletetracker.service.AthleteProgramService
 import com.athletetracker.service.AthleteDashboardService
-import com.athletetracker.service.WorkoutService
+import com.athletetracker.service.AthleteProgramWorkoutService
 import com.athletetracker.service.AthleteService
 import com.athletetracker.service.UserProfileService
 import com.athletetracker.repository.AthleteRepository
@@ -22,7 +22,7 @@ class AthleteController(
     private val athleteProgramService: AthleteProgramService,
     private val athleteDashboardService: AthleteDashboardService,
     private val athleteRepository: AthleteRepository,
-    private val workoutService: WorkoutService,
+    private val athleteProgramWorkoutService: AthleteProgramWorkoutService,
     private val athleteService: AthleteService,
     userProfileService: UserProfileService
 ) : BaseProfileController(userProfileService) {
@@ -104,12 +104,12 @@ class AthleteController(
     }
 
     @GetMapping("/workouts")
-    fun getMyWorkouts(authentication: Authentication): ResponseEntity<List<WorkoutDto>> {
+    fun getMyWorkouts(authentication: Authentication): ResponseEntity<List<AthleteWorkoutDto>> {
         val user = authentication.principal as User
         val athlete = athleteRepository.findByUserId(user.id)
             ?: throw IllegalArgumentException("No athlete profile found for user: ${user.id}")
         
-        val workouts = workoutService.getWorkoutsByAthleteAsDto(athlete.id)
+        val workouts = athleteProgramWorkoutService.getAthleteWorkoutsByAthlete(athlete.id)
         return ResponseEntity.ok(workouts)
     }
 }

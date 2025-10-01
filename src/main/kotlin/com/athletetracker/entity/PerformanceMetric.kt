@@ -10,48 +10,48 @@ data class PerformanceMetric(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long = 0,
-    
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "athlete_id", nullable = false)
     val athlete: Athlete,
-    
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     val metricType: MetricType,
-    
+
     @Column(nullable = false)
     val metricValue: Double,
-    
+
     @Column
     val unit: String? = null,
-    
+
     @Column(nullable = false)
     val testDate: LocalDateTime,
-    
+
     @Column(columnDefinition = "TEXT")
     val notes: String? = null,
-    
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "recorded_by_id")
     val recordedBy: User? = null,
-    
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     val sourceType: PerformanceMetricSource = PerformanceMetricSource.MANUAL,
-    
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "source_assessment_result_id")
     @JsonIgnore
     val sourceAssessmentResult: AssessmentResult? = null,
-    
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "source_workout_exercise_id")
     @JsonIgnore
-    val sourceWorkoutExercise: WorkoutExercise? = null,
-    
+    val sourceWorkoutExercise: AthleteWorkoutExercise? = null,
+
     @Column(nullable = false)
     val isPersonalRecord: Boolean = false,
-    
+
     @Column(nullable = false)
     val createdAt: LocalDateTime = LocalDateTime.now()
 )

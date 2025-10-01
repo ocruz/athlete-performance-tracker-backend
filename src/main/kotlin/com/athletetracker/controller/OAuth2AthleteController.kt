@@ -1,11 +1,10 @@
 package com.athletetracker.controller
 
 import com.athletetracker.dto.*
-import com.athletetracker.entity.User
 import com.athletetracker.service.AthleteService
 import com.athletetracker.service.PerformanceMetricService
 import com.athletetracker.service.PersonalRecordService
-import com.athletetracker.service.WorkoutService
+import com.athletetracker.service.AthleteProgramWorkoutService
 import com.athletetracker.service.AssessmentService
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
@@ -24,7 +23,7 @@ class OAuth2AthleteController(
     private val athleteService: AthleteService,
     private val performanceMetricService: PerformanceMetricService,
     private val personalRecordService: PersonalRecordService,
-    private val workoutService: WorkoutService,
+    private val athleteProgramWorkoutService: AthleteProgramWorkoutService,
     private val assessmentService: AssessmentService
 ) {
     
@@ -99,7 +98,7 @@ class OAuth2AthleteController(
     @PreAuthorize("hasAuthority('SCOPE_workouts:read')")
     fun getMyWorkouts(@AuthenticationPrincipal jwt: Jwt): ResponseEntity<List<OAuth2WorkoutResponse>> {
         val athleteId = extractAthleteIdFromJwt(jwt)
-        val workouts = workoutService.getWorkoutsByAthleteAsDto(athleteId)
+        val workouts = athleteProgramWorkoutService.getAthleteWorkoutsByAthlete(athleteId)
         
         val workoutResponses = workouts.map { workout ->
             OAuth2WorkoutResponse(
@@ -126,9 +125,9 @@ class OAuth2AthleteController(
     fun getMyWorkoutDetail(
         @PathVariable workoutId: Long,
         @AuthenticationPrincipal jwt: Jwt
-    ): ResponseEntity<WorkoutDto> {
+    ): ResponseEntity<AthleteWorkoutDto> {
         val athleteId = extractAthleteIdFromJwt(jwt)
-        val workout = workoutService.getWorkoutById(workoutId)
+        val workout = athleteProgramWorkoutService.getWorkoutById(workoutId)
         
         // Verify that this workout belongs to the authenticated athlete
         if (workout.athlete.id != athleteId) {
@@ -176,7 +175,7 @@ class OAuth2AthleteController(
         
         // Get counts from various services if authorized
         val workoutCount = if (hasScope(jwt, "workouts:read")) {
-            workoutService.getWorkoutsByAthlete(athleteId).size
+            athleteProgramWorkoutService.getAthleteWorkoutsByAthlete(athleteId).size
         } else null
         
         val metricsCount = if (hasScope(jwt, "performance:read")) {

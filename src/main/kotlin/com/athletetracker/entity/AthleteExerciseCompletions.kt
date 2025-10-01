@@ -6,8 +6,8 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 
 @Entity
-@Table(name = "program_progress")
-data class ProgramProgress(
+@Table(name = "athlete_exercise_completions")
+data class AthleteExerciseCompletions(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long = 0,

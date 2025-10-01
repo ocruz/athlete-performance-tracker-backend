@@ -6,12 +6,12 @@ data class AthleteDashboardResponse(
     val athlete: AthleteBasicDto,
     val activePrograms: List<AthleteProgramSummaryDto>,
     val progressHighlights: ProgressHighlightsDto,
-    val upcomingWorkouts: List<WorkoutSummaryDto>
+    val upcomingWorkouts: List<AthleteWorkoutSummaryDto>
 )
 
 // Using AthleteBasicDto from AthleteProgramDto.kt to avoid duplication
 // Using ProgramSummaryDto from EnhancedProgramDto.kt to avoid duplication  
-// Using WorkoutSummaryDto from WorkoutDto.kt to avoid duplication
+// Using WorkoutSummaryDto from AthleteWorkoutDto.kt to avoid duplication
 
 data class AthleteProgramSummaryDto(
     val id: Long,

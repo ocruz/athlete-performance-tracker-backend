@@ -18,17 +18,17 @@ class PersonalRecordService(
     /**
      * Detects if a workout exercise represents a new personal record
      */
-    fun detectWorkoutPR(workoutExercise: WorkoutExercise): PRDetectionResult {
+    fun detectWorkoutPR(athleteWorkoutExercise: AthleteWorkoutExercise): PRDetectionResult {
         // Only check for strength exercises with weight data
-        if (workoutExercise.actualWeight == null || workoutExercise.actualReps == null) {
+        if (athleteWorkoutExercise.actualWeight == null || athleteWorkoutExercise.actualReps == null) {
             return PRDetectionResult(false, null, null, null)
         }
         
-        val metricType = performanceIntegrationService.mapExerciseToMetricType(workoutExercise.exercise)
+        val metricType = performanceIntegrationService.mapExerciseToMetricType(athleteWorkoutExercise.exercise)
             ?: return PRDetectionResult(false, null, null, null)
         
-        val athlete = workoutExercise.workout.athlete
-        val newWeight = workoutExercise.actualWeight
+        val athlete = athleteWorkoutExercise.athleteWorkout.athlete
+        val newWeight = athleteWorkoutExercise.actualWeight
         
         // Get current best for this exercise
         val currentBest = performanceMetricRepository.findLatestByAthleteAndMetricType(athlete, metricType)
@@ -67,18 +67,18 @@ class PersonalRecordService(
     /**
      * Detects PRs based on 1RM equivalents rather than just raw weight
      */
-    fun detectWorkoutPRWithOneRepMax(workoutExercise: WorkoutExercise): PRDetectionResult {
-        if (workoutExercise.actualWeight == null || workoutExercise.actualReps == null) {
+    fun detectWorkoutPRWithOneRepMax(athleteWorkoutExercise: AthleteWorkoutExercise): PRDetectionResult {
+        if (athleteWorkoutExercise.actualWeight == null || athleteWorkoutExercise.actualReps == null) {
             return PRDetectionResult(false, null, null, null)
         }
         
-        val metricType = performanceIntegrationService.mapExerciseToMetricType(workoutExercise.exercise)
+        val metricType = performanceIntegrationService.mapExerciseToMetricType(athleteWorkoutExercise.exercise)
             ?: return PRDetectionResult(false, null, null, null)
         
-        val athlete = workoutExercise.workout.athlete
+        val athlete = athleteWorkoutExercise.athleteWorkout.athlete
         val newOneRM = calculateOneRepMaxEquivalent(
-            workoutExercise.actualWeight!!,
-            workoutExercise.actualReps!!
+            athleteWorkoutExercise.actualWeight!!,
+            athleteWorkoutExercise.actualReps!!
         )
         
         // Get current best 1RM

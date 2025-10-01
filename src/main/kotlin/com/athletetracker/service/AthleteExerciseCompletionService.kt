@@ -9,7 +9,7 @@ import java.time.LocalDate
 
 @Service
 @Transactional
-class ProgramProgressService(
+class AthleteExerciseCompletionService(
     private val programProgressRepository: ProgramProgressRepository,
     private val athleteProgramRepository: AthleteProgramRepository,
     private val programWorkoutExerciseRepository: ProgramWorkoutExerciseRepository,
@@ -26,7 +26,7 @@ class ProgramProgressService(
         val loggedBy = userRepository.findById(loggedById)
             .orElseThrow { IllegalArgumentException("User not found with id: $loggedById") }
 
-        val progress = ProgramProgress(
+        val progress = AthleteExerciseCompletions(
             athleteProgram = athleteProgram,
             programWorkoutExercise = programWorkoutExercise,
             completedDate = request.completedDate,
@@ -86,7 +86,7 @@ class ProgramProgressService(
         return convertToProgressResponse(savedProgress)
     }
 
-    private fun convertToProgressResponse(progress: ProgramProgress): ProgramProgressResponse {
+    private fun convertToProgressResponse(progress: AthleteExerciseCompletions): ProgramProgressResponse {
         return ProgramProgressResponse(
             id = progress.id,
             athleteProgram = AthleteProgramBasicDto(

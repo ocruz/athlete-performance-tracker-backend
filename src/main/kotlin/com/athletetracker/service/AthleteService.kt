@@ -5,7 +5,7 @@ import com.athletetracker.entity.Athlete
 import com.athletetracker.entity.Sport
 import com.athletetracker.repository.AthleteRepository
 import com.athletetracker.repository.PerformanceMetricRepository
-import com.athletetracker.repository.WorkoutRepository
+import com.athletetracker.repository.AthleteWorkoutRepository
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -15,7 +15,7 @@ import java.time.LocalDateTime
 @Transactional
 class AthleteService(
     private val athleteRepository: AthleteRepository,
-    private val workoutRepository: WorkoutRepository,
+    private val athleteWorkoutRepository: AthleteWorkoutRepository,
     private val performanceMetricRepository: PerformanceMetricRepository
 ) {
     
@@ -232,7 +232,7 @@ class AthleteService(
     }
 
     private fun mapToResponse(athlete: Athlete): AthleteDto {
-        val totalWorkouts = workoutRepository.countByAthlete(athlete)
+        val totalWorkouts = athleteWorkoutRepository.countByAthlete(athlete)
         val recentMetrics = performanceMetricRepository.findByAthleteOrderByTestDateDesc(athlete)
             .take(5)
             .map { metric ->

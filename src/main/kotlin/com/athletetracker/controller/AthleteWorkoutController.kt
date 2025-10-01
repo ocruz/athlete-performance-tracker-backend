@@ -1,13 +1,13 @@
 package com.athletetracker.controller
 
-import com.athletetracker.dto.WorkoutDto
-import com.athletetracker.dto.WorkoutExerciseDto
-import com.athletetracker.entity.Workout
+import com.athletetracker.dto.AthleteWorkoutDto
+import com.athletetracker.dto.AthleteWorkoutExerciseDto
+import com.athletetracker.entity.AthleteWorkout
 import com.athletetracker.service.CompleteWorkoutRequest
-import com.athletetracker.service.CreateWorkoutRequest
+import com.athletetracker.service.CreateAthleteWorkoutRequest
 import com.athletetracker.service.ExerciseCompletionRequest
 import com.athletetracker.service.UpdateWorkoutRequest
-import com.athletetracker.service.WorkoutService
+import com.athletetracker.service.AthleteProgramWorkoutService
 import com.athletetracker.service.WorkoutStatsResponse
 import org.springframework.format.annotation.DateTimeFormat
 import org.springframework.http.HttpStatus
@@ -16,32 +16,32 @@ import org.springframework.web.bind.annotation.*
 import java.time.LocalDateTime
 
 @RestController
-@RequestMapping("/workouts")
-class WorkoutController(
-    private val workoutService: WorkoutService
+@RequestMapping("/athlete-workouts")
+class AthleteWorkoutController(
+    private val athleteProgramWorkoutService: AthleteProgramWorkoutService
 ) {
 
     @PostMapping
-    fun createWorkout(@RequestBody request: CreateWorkoutRequest): ResponseEntity<Any> {
-        val workout = workoutService.createWorkout(request)
+    fun createWorkout(@RequestBody request: CreateAthleteWorkoutRequest): ResponseEntity<Any> {
+        val workout = athleteProgramWorkoutService.createWorkout(request)
         return ResponseEntity.status(HttpStatus.CREATED).body(workout)
     }
 
     @GetMapping("/{id}")
-    fun getWorkoutById(@PathVariable id: Long): ResponseEntity<WorkoutDto> {
-        val workout = workoutService.getWorkoutById(id)
+    fun getWorkoutById(@PathVariable id: Long): ResponseEntity<AthleteWorkoutDto> {
+        val workout = athleteProgramWorkoutService.getWorkoutById(id)
         return ResponseEntity.ok(workout)
     }
 
     @GetMapping("/athlete/{athleteId}")
-    fun getWorkoutsByAthlete(@PathVariable athleteId: Long): ResponseEntity<List<Workout>> {
-        val workouts = workoutService.getWorkoutsByAthlete(athleteId)
+    fun getWorkoutsByAthlete(@PathVariable athleteId: Long): ResponseEntity<List<AthleteWorkoutDto>> {
+        val workouts = athleteProgramWorkoutService.getAthleteWorkoutsByAthlete(athleteId)
         return ResponseEntity.ok(workouts)
     }
 
     @GetMapping("/coach/{coachId}")
-    fun getWorkoutsByCoach(@PathVariable coachId: Long): ResponseEntity<List<Workout>> {
-        val workouts = workoutService.getWorkoutsByCoach(coachId)
+    fun getWorkoutsByCoach(@PathVariable coachId: Long): ResponseEntity<List<AthleteWorkout>> {
+        val workouts = athleteProgramWorkoutService.getWorkoutsByCoach(coachId)
         return ResponseEntity.ok(workouts)
     }
 
@@ -50,8 +50,8 @@ class WorkoutController(
         @PathVariable athleteId: Long,
         @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) startDate: LocalDateTime,
         @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) endDate: LocalDateTime
-    ): ResponseEntity<List<Workout>> {
-        val workouts = workoutService.getWorkoutsByAthleteInDateRange(athleteId, startDate, endDate)
+    ): ResponseEntity<List<AthleteWorkout>> {
+        val workouts = athleteProgramWorkoutService.getWorkoutsByAthleteInDateRange(athleteId, startDate, endDate)
         return ResponseEntity.ok(workouts)
     }
 
@@ -59,32 +59,32 @@ class WorkoutController(
     fun updateWorkout(
         @PathVariable id: Long,
         @RequestBody request: UpdateWorkoutRequest
-    ): ResponseEntity<Workout> {
-        val workout = workoutService.updateWorkout(id, request)
+    ): ResponseEntity<AthleteWorkout> {
+        val workout = athleteProgramWorkoutService.updateWorkout(id, request)
         return ResponseEntity.ok(workout)
     }
 
     @DeleteMapping("/{id}")
     fun deleteWorkout(@PathVariable id: Long): ResponseEntity<Void> {
-        workoutService.deleteWorkout(id)
+        athleteProgramWorkoutService.deleteWorkout(id)
         return ResponseEntity.noContent().build()
     }
 
     @GetMapping("/athlete/{athleteId}/stats")
     fun getWorkoutStats(@PathVariable athleteId: Long): ResponseEntity<WorkoutStatsResponse> {
-        val stats = workoutService.getWorkoutStats(athleteId)
+        val stats = athleteProgramWorkoutService.getWorkoutStats(athleteId)
         return ResponseEntity.ok(stats)
     }
 
     @PostMapping("/complete")
-    fun completeWorkout(@RequestBody request: CompleteWorkoutRequest): ResponseEntity<WorkoutDto> {
-        val workout = workoutService.completeWorkout(request)
+    fun completeWorkout(@RequestBody request: CompleteWorkoutRequest): ResponseEntity<AthleteWorkoutDto> {
+        val workout = athleteProgramWorkoutService.completeWorkout(request)
         return ResponseEntity.ok(workout)
     }
 
     @PostMapping("/{workoutId}/start")
-    fun startWorkout(@PathVariable workoutId: Long): ResponseEntity<WorkoutDto> {
-        val workout = workoutService.startWorkout(workoutId)
+    fun startWorkout(@PathVariable workoutId: Long): ResponseEntity<AthleteWorkoutDto> {
+        val workout = athleteProgramWorkoutService.startWorkout(workoutId)
         return ResponseEntity.ok(workout)
     }
 
@@ -92,8 +92,8 @@ class WorkoutController(
     fun updateWorkoutExercise(
         @PathVariable workoutExerciseId: Long,
         @RequestBody request: ExerciseCompletionRequest
-    ): ResponseEntity<WorkoutExerciseDto> {
-        val exercise = workoutService.updateWorkoutExercise(workoutExerciseId, request)
+    ): ResponseEntity<AthleteWorkoutExerciseDto> {
+        val exercise = athleteProgramWorkoutService.updateWorkoutExercise(workoutExerciseId, request)
         return ResponseEntity.ok(exercise)
     }
 
@@ -102,7 +102,7 @@ class WorkoutController(
         @PathVariable workoutId: Long,
         @PathVariable exerciseId: Long
     ): ResponseEntity<Void> {
-        workoutService.removeExerciseFromWorkout(workoutId, exerciseId)
+        athleteProgramWorkoutService.removeExerciseFromWorkout(workoutId, exerciseId)
         return ResponseEntity.noContent().build()
     }
 

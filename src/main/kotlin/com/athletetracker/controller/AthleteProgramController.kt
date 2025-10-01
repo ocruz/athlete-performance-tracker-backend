@@ -1,13 +1,9 @@
 package com.athletetracker.controller
 
 import com.athletetracker.dto.*
-import com.athletetracker.entity.Workout
 import com.athletetracker.service.AthleteProgramService
-import com.athletetracker.service.AutoScheduleProgramRequest
-import com.athletetracker.service.ProgramProgressService
-import com.athletetracker.service.ScheduleWorkoutForDayRequest
-import com.athletetracker.service.ScheduleWorkoutsForWeekRequest
-import com.athletetracker.service.WorkoutGenerationService
+import com.athletetracker.service.AthleteExerciseCompletionService
+import com.athletetracker.service.AthleteProgramWorkoutGenerationService
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.*
@@ -18,8 +14,8 @@ import java.time.LocalDate
 @PreAuthorize("hasRole('COACH') or hasRole('ATHLETE')")
 class AthleteProgramController(
     private val athleteProgramService: AthleteProgramService,
-    private val programProgressService: ProgramProgressService,
-    private val workoutGenerationService: WorkoutGenerationService
+    private val athleteExerciseCompletionService: AthleteExerciseCompletionService,
+    private val athleteProgramWorkoutGenerationService: AthleteProgramWorkoutGenerationService
 ) {
 
     @PostMapping("/assign")
@@ -72,13 +68,13 @@ class AthleteProgramController(
         @RequestBody request: LogProgressRequest,
         @RequestParam loggedById: Long
     ): ResponseEntity<ProgramProgressResponse> {
-        val response = programProgressService.logProgress(request, loggedById)
+        val response = athleteExerciseCompletionService.logProgress(request, loggedById)
         return ResponseEntity.ok(response)
     }
 
     @GetMapping("/{athleteProgramId}/progress")
     fun getProgressForAthleteProgram(@PathVariable athleteProgramId: Long): ResponseEntity<List<ProgramProgressResponse>> {
-        val progress = programProgressService.getProgressForAthleteProgram(athleteProgramId)
+        val progress = athleteExerciseCompletionService.getProgressForAthleteProgram(athleteProgramId)
         return ResponseEntity.ok(progress)
     }
 
@@ -87,7 +83,7 @@ class AthleteProgramController(
         @PathVariable athleteProgramId: Long,
         @PathVariable weekNumber: Int
     ): ResponseEntity<WeekProgressResponse> {
-        val weekProgress = programProgressService.getWeekProgress(athleteProgramId, weekNumber)
+        val weekProgress = athleteExerciseCompletionService.getWeekProgress(athleteProgramId, weekNumber)
         return ResponseEntity.ok(weekProgress)
     }
 
@@ -97,7 +93,7 @@ class AthleteProgramController(
         @RequestParam startDate: LocalDate,
         @RequestParam endDate: LocalDate
     ): ResponseEntity<List<ProgramProgressResponse>> {
-        val progress = programProgressService.getProgressForWeekRange(athleteProgramId, startDate, endDate)
+        val progress = athleteExerciseCompletionService.getProgressForWeekRange(athleteProgramId, startDate, endDate)
         return ResponseEntity.ok(progress)
     }
 
@@ -106,7 +102,7 @@ class AthleteProgramController(
         @PathVariable progressId: Long,
         @RequestBody request: LogProgressRequest
     ): ResponseEntity<ProgramProgressResponse> {
-        val response = programProgressService.updateProgress(progressId, request)
+        val response = athleteExerciseCompletionService.updateProgress(progressId, request)
         return ResponseEntity.ok(response)
     }
 
@@ -115,9 +111,9 @@ class AthleteProgramController(
     fun generateWorkouts(
         @PathVariable athleteProgramId: Long,
         @RequestBody request: GenerateWorkoutsRequest
-    ): ResponseEntity<List<WorkoutDto>> {
+    ): ResponseEntity<List<AthleteWorkoutDto>> {
         val startDate = LocalDate.parse(request.startDate)
-        val workouts = workoutGenerationService.generateWorkoutsFromProgram(
+        val workouts = athleteProgramWorkoutGenerationService.generateWorkoutsFromProgram(
             athleteProgramId = athleteProgramId,
             startDate = startDate,
             numberOfWeeks = request.numberOfWeeks
@@ -126,14 +122,14 @@ class AthleteProgramController(
     }
 
     @GetMapping("/{athleteProgramId}/workouts")
-    fun getGeneratedWorkouts(@PathVariable athleteProgramId: Long): ResponseEntity<List<WorkoutDto>> {
-        val workouts = workoutGenerationService.getGeneratedWorkouts(athleteProgramId)
+    fun getGeneratedWorkouts(@PathVariable athleteProgramId: Long): ResponseEntity<List<AthleteWorkoutDto>> {
+        val workouts = athleteProgramWorkoutGenerationService.getGeneratedWorkouts(athleteProgramId)
         return ResponseEntity.ok(workouts)
     }
 
     @PostMapping("/workouts/{workoutId}/regenerate")
-    fun regenerateWorkout(@PathVariable workoutId: Long): ResponseEntity<WorkoutDto> {
-        val workout = workoutGenerationService.regenerateWorkoutFromTemplate(workoutId)
+    fun regenerateWorkout(@PathVariable workoutId: Long): ResponseEntity<AthleteWorkoutDto> {
+        val workout = athleteProgramWorkoutGenerationService.regenerateWorkoutFromTemplate(workoutId)
         return ResponseEntity.ok(workout)
     }
 }

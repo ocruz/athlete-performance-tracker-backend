@@ -4,7 +4,7 @@ import com.athletetracker.entity.Athlete
 import com.athletetracker.entity.MetricType
 import com.athletetracker.entity.PerformanceMetric
 import com.athletetracker.entity.AssessmentResult
-import com.athletetracker.entity.WorkoutExercise
+import com.athletetracker.entity.AthleteWorkoutExercise
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
@@ -35,7 +35,7 @@ interface PerformanceMetricRepository : JpaRepository<PerformanceMetric, Long> {
     
     fun findBySourceAssessmentResult(assessmentResult: AssessmentResult): PerformanceMetric?
     
-    fun findBySourceWorkoutExercise(workoutExercise: WorkoutExercise): PerformanceMetric?
+    fun findBySourceWorkoutExercise(athleteWorkoutExercise: AthleteWorkoutExercise): PerformanceMetric?
     
     @Query("SELECT pm FROM PerformanceMetric pm WHERE pm.athlete = :athlete AND pm.isPersonalRecord = true ORDER BY pm.testDate DESC")
     fun findPersonalRecordsByAthlete(@Param("athlete") athlete: Athlete): List<PerformanceMetric>
