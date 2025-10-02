@@ -48,6 +48,10 @@ dependencies {
     // Database Migration
     implementation("org.flywaydb:flyway-core:9.22.3")
     
+    // Email
+    implementation("org.springframework.boot:spring-boot-starter-mail")
+    implementation("com.github.spullara.mustache.java:compiler:0.9.10")
+    
     // Documentation
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.2.0")
     

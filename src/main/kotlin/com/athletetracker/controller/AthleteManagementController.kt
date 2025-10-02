@@ -117,6 +117,80 @@ class AthleteManagementController(
         return ResponseEntity.ok(stats)
     }
 
+    @PostMapping("/athletes/{id}/resend-invitation")
+    @PreAuthorize("hasRole('COACH') or hasRole('ADMIN')")
+    fun resendInvitation(
+        @PathVariable id: Long,
+        authentication: Authentication
+    ): ResponseEntity<ResendInvitationResponse> {
+        return try {
+            val userId = authentication.name?.toLongOrNull()
+            invitationService.resendInvitation(id, userId)
+            
+            // Check if this was a resend of existing invitation or creation of new one
+            val isReminder = invitationService.getInvitationStatus(id) == com.athletetracker.service.InvitationStatus.INVITATION_SENT
+            
+            val response = ResendInvitationResponse(
+                success = true,
+                message = if (isReminder) "Invitation reminder sent successfully" else "New invitation sent successfully",
+                isReminder = isReminder
+            )
+            ResponseEntity.ok(response)
+        } catch (e: IllegalArgumentException) {
+            val response = ResendInvitationResponse(
+                success = false,
+                message = e.message ?: "Failed to resend invitation"
+            )
+            ResponseEntity.badRequest().body(response)
+        } catch (e: Exception) {
+            val response = ResendInvitationResponse(
+                success = false,
+                message = "An error occurred while resending the invitation"
+            )
+            ResponseEntity.internalServerError().body(response)
+        }
+    }
+
+    @GetMapping("/athletes/{id}/invitation-status")
+    @PreAuthorize("hasRole('COACH') or hasRole('ADMIN')")
+    fun getInvitationStatus(
+        @PathVariable id: Long,
+        authentication: Authentication
+    ): ResponseEntity<Map<String, Any>> {
+        return try {
+            val status = invitationService.getInvitationStatus(id)
+            val invitations = invitationService.getInvitationsForAthlete(id)
+            
+            val response = mutableMapOf<String, Any>(
+                "status" to status.name,
+                "statusDescription" to when (status) {
+                    com.athletetracker.service.InvitationStatus.NO_EMAIL -> "No email address"
+                    com.athletetracker.service.InvitationStatus.NO_INVITATION -> "No invitation sent"
+                    com.athletetracker.service.InvitationStatus.INVITATION_SENT -> "Invitation pending"
+                    com.athletetracker.service.InvitationStatus.INVITATION_EXPIRED -> "Invitation expired"
+                    com.athletetracker.service.InvitationStatus.INVITATION_USED -> "Invitation used"
+                    com.athletetracker.service.InvitationStatus.ACCOUNT_CREATED -> "Account created"
+                },
+                "canResend" to (status in listOf(
+                    com.athletetracker.service.InvitationStatus.NO_INVITATION,
+                    com.athletetracker.service.InvitationStatus.INVITATION_EXPIRED,
+                    com.athletetracker.service.InvitationStatus.INVITATION_USED,
+                    com.athletetracker.service.InvitationStatus.INVITATION_SENT
+                )),
+                "invitationCount" to invitations.size
+            )
+            
+            // Add lastInvitationDate only if it exists
+            invitations.firstOrNull()?.createdAt?.let {
+                response["lastInvitationDate"] = it
+            }
+            ResponseEntity.ok(response)
+        } catch (e: IllegalArgumentException) {
+            val errorResponse: Map<String, Any> = mapOf("error" to (e.message ?: "Athlete not found"))
+            ResponseEntity.badRequest().body(errorResponse)
+        }
+    }
+
     // ===== ATHLETE SELF-SERVICE ENDPOINTS (/athlete/*) =====
 
     @GetMapping("/athlete/profile")

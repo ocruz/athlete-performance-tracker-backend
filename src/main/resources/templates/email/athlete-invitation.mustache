@@ -1,0 +1,33 @@
+{{>common/header}}
+
+<h1 style="color: #000000; text-align: center; margin-bottom: 30px;">Welcome to Your Performance Journey!</h1>
+
+<p>Dear <strong>{{athleteName}}</strong>,</p>
+
+<p>{{#coachName}}{{coachName}} has created{{/coachName}}{{^coachName}}A{{/coachName}} performance profile for you in our Athlete Performance Tracker system.</p>
+
+<p>With your new account, you'll be able to:</p>
+<ul>
+    <li><strong>Track your workouts</strong> - Log exercises, sets, reps, and weights</li>
+    <li><strong>Monitor your progress</strong> - See improvements over time with detailed charts</li>
+    <li><strong>Follow training programs</strong> - Access customized workout plans</li>
+    <li><strong>Record performance metrics</strong> - Track strength, speed, and endurance gains</li>
+    <li><strong>Connect with your coach</strong> - Receive feedback and program updates</li>
+</ul>
+
+<div style="text-align: center; margin: 30px 0;">
+    <a href="{{invitationUrl}}" class="button">Create My Account</a>
+</div>
+
+<div class="important">
+    <p><strong>⏰ Important:</strong> This invitation will expire on <strong>{{expirationDate}}</strong>. Don't wait to get started!</p>
+</div>
+
+<p style="text-align: center; margin: 20px 0;">
+    <small>Can't click the button? Copy and paste this link into your browser:</small><br>
+    <a href="{{invitationUrl}}" class="link">{{invitationUrl}}</a>
+</p>
+
+<p>Ready to take your performance to the next level? We're excited to support your athletic journey!</p>
+
+{{>common/footer}}
